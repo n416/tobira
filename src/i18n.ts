@@ -1,0 +1,371 @@
+export type Language = 'en' | 'ja'
+
+export const dict = {
+  en: {
+    lang: 'en',
+    tobira_admin: 'Tobira Admin',
+    title_login: 'Login',
+    title_dashboard: 'Admin Dashboard',
+    title_user_dashboard: 'My Dashboard',
+    title_invite: 'Setup Password',
+    title_forgot: 'Reset Password',
+    title_change_password: 'Change Password',
+    
+    // Nav
+    nav_home: 'Home',
+    nav_apps: 'Apps',
+    nav_groups: 'Affiliations',
+    nav_users: 'Users',
+    nav_logs: 'Audit Logs',
+    
+    // Login
+    login_header: 'Login to',
+    email: 'Email',
+    password: 'Password',
+    btn_login: 'Log in',
+    forgot_password: 'Forgot Password?',
+    back_to_login: 'Back to Login',
+    
+    // Common
+    logout: 'Logout',
+    cancel: 'Cancel',
+    save: 'Save',
+    delete: 'Delete',
+    edit: 'Edit',
+    status: 'Status',
+    action: 'Action',
+    
+    // User Dashboard
+    dashboard_welcome: 'Welcome, {email}',
+    dashboard_apps_header: 'Your Applications',
+    btn_open_app: 'Launch',
+    btn_change_password: 'Change Password',
+    header_change_password: 'Change Password',
+    msg_password_changed: 'Password changed successfully.',
+    no_apps_assigned: 'No applications assigned. Please contact your administrator.',
+    
+    // Apps
+    section_apps: 'Applications',
+    header_new_app: 'Register New App',
+    header_edit_app: 'Edit App',
+    label_app_id: 'App ID',
+    label_app_name: 'App Name',
+    label_base_url: 'Base URL',
+    placeholder_app_id: 'e.g. todo-app',
+    placeholder_app_name: 'Display Name',
+    btn_add_app: 'Add App',
+    btn_pause: 'Pause',
+    btn_resume: 'Resume',
+    status_active: 'Active',
+    status_inactive: 'Paused',
+    confirm_delete_app: 'Are you sure? All permissions associated with this app will be permanently deleted.',
+    
+    // Groups
+    section_groups: 'Affiliation Management',
+    header_new_group: 'New Affiliation',
+    label_group_name: 'Affiliation Name',
+    placeholder_group_name: 'e.g. Sales Dept',
+    btn_add_group: 'Add Affiliation',
+    no_groups: 'No affiliations defined.',
+    confirm_delete_group: 'Are you sure you want to delete this affiliation? Users in this group will become "No Affiliation".',
+    
+    // Users
+    section_users: 'User Management',
+    header_invite: 'Invite User',
+    placeholder_invite_email: 'Email to invite',
+    btn_generate_invite: 'Send Invite',
+    header_registered_users: 'Registered Users',
+    label_affiliation: 'Affiliation',
+    no_affiliation: 'No Affiliation',
+    confirm_delete_user: 'Are you sure you want to delete this user? This action cannot be undone.',
+    
+    // Bulk & Permissions
+    btn_bulk_mode: 'Bulk Edit Mode',
+    btn_exit_bulk: 'Exit Bulk Mode',
+    btn_bulk_apply: 'Apply Changes',
+    header_user_details: 'User Details',
+    tab_permissions: 'Permissions',
+    
+    header_grant: 'Grant Permission',
+    header_grant_permission: 'Grant Access', 
+    header_active_permissions: 'Active Permissions',
+    label_user: 'User',
+    label_app: 'Application',
+    label_valid_from: 'Start Date',
+    label_valid_to: 'End Date',
+    btn_grant: 'Grant',
+    permission_source: 'Source',
+    source_user: 'User Specific',
+    source_group: 'Affiliation',
+    msg_override: 'User settings override affiliation settings.',
+    
+    // Modal Specific
+    modal_th_app: 'Application',
+    modal_th_source: 'Source',
+    modal_th_valid: 'Validity Period',
+    modal_th_action: 'Action',
+    modal_section_group: 'Affiliation',
+    modal_section_perm: 'Permission Status',
+    modal_section_add: 'Grant Permission',
+    modal_label_app: 'Select Apps (Multiple)',
+    modal_label_no_expire: 'No Expiration',
+    
+    // Date Quick Buttons
+    btn_date_today: 'Today',
+    btn_date_start_month: '1st of Month',
+    btn_term_1mo: '+1 Month',
+    btn_term_1yr: '+1 Year',
+    btn_term_forever: 'Indefinite',
+    
+    // Logs
+    section_logs: 'Audit Logs',
+    th_time: 'Time',
+    th_event: 'Event',
+    th_details: 'Details',
+    label_filter_event: 'Filter by Event',
+    option_all_events: 'All Events',
+    btn_filter: 'Filter',
+    pager_prev: '← Prev',
+    pager_next: 'Next →',
+    pager_info: 'Page {current} of {total} ({count} logs)',
+    
+    // Log Events
+    event_APP_CREATED: 'App Created',
+    event_APP_UPDATED: 'App Updated',
+    event_APP_DELETED: 'App Deleted',
+    event_PERMISSION_GRANT: 'Permission Granted',
+    event_PERMISSION_REVOKE: 'Permission Revoked',
+    event_USER_UPDATE: 'User Updated',
+    event_USER_DELETED: 'User Deleted',
+    event_GROUP_PERMISSION_GRANT: 'Group Perm Granted',
+    event_GROUP_PERMISSION_REVOKE: 'Group Perm Revoked',
+    event_GROUP_DELETED: 'Group Deleted',
+    event_LOGIN: 'User Login',
+    event_PASSWORD_CHANGE: 'Password Changed',
+
+    // Log Messages
+    log_login: 'User logged in: {email}',
+    log_app_created: 'App "{appName}" ({id}) created by {admin}',
+    log_app_updated: 'App "{appName}" updated (Status: {status}) by {admin}',
+    log_app_deleted: 'App "{id}" deleted by {admin}',
+    log_user_group_update: 'User {user} affiliation changed to "{group}" by {admin}',
+    log_permission_grant: 'Granted apps [{apps}] to user {user} by {admin}',
+    log_permission_revoke: 'Permission {id} revoked by {admin}',
+    log_user_deleted: 'User {id} deleted by {admin}',
+    log_group_permission_grant: 'Granted apps [{apps}] to group "{group}" by {admin}',
+    log_group_permission_revoke: 'Group Permission {id} revoked by {admin}',
+    log_group_deleted: 'Group {id} deleted by {admin}',
+    log_bulk_update: 'Bulk update by {admin} ({count} users). Group: {group}, App: {app}',
+    log_password_change: 'User {email} changed password.',
+
+    // Invite & Reset
+    welcome: 'Welcome to Tobira',
+    setup_desc: 'Setup password for',
+    reset_desc: 'Reset password for',
+    label_new_password: 'New Password',
+    btn_create_account: 'Create Account',
+    btn_reset_password: 'Reset Password',
+    btn_send_link: 'Send Reset Link',
+    
+    // Errors/Messages
+    invite_created: 'Invite Link Created',
+    invite_copy_hint: 'Copy this link.',
+    link_sent: 'If an account exists, a reset link has been sent.',
+    error_credentials: 'Invalid credentials',
+    error_required: 'Email and password required',
+    error_user_exists: 'User exists',
+    error_invalid_invite: 'Invalid token',
+    error_access_denied: 'Access Denied',
+    error_not_started: 'Not started',
+    error_expired: 'Expired',
+    
+    // Stats
+    stat_apps: 'Applications',
+    stat_users: 'Users',
+    stat_logs: 'Logs',
+  },
+  ja: {
+    lang: 'ja',
+    title_login: 'ログイン',
+    title_dashboard: '管理ダッシュボード',
+    title_user_dashboard: 'マイダッシュボード',
+    title_invite: 'パスワード設定',
+    title_forgot: 'パスワードリセット',
+    title_change_password: 'パスワード変更',
+    
+    tobira_admin: 'Tobira 管理画面',
+
+    // Nav
+    nav_home: 'ホーム',
+    nav_apps: 'アプリ管理',
+    nav_groups: '所属管理',
+    nav_users: 'ユーザー管理',
+    nav_logs: '監査ログ',
+
+    // Login
+    login_header: 'ログイン:',
+    email: 'メールアドレス',
+    password: 'パスワード',
+    btn_login: 'ログイン',
+    forgot_password: 'パスワードを忘れた場合',
+    back_to_login: 'ログインに戻る',
+    
+    // Common
+    logout: 'ログアウト',
+    cancel: 'キャンセル',
+    save: '保存',
+    delete: '削除',
+    edit: '編集',
+    status: '状態',
+    action: '操作',
+    
+    // User Dashboard
+    dashboard_welcome: 'ようこそ: {email}',
+    dashboard_apps_header: '利用可能なアプリ',
+    btn_open_app: 'アプリを開く',
+    btn_change_password: 'パスワード変更',
+    header_change_password: 'パスワード変更',
+    msg_password_changed: 'パスワードを変更しました',
+    no_apps_assigned: '利用可能なアプリがありません。管理者に問い合わせてください。',
+    
+    // Apps
+    section_apps: '連携アプリ一覧',
+    header_new_app: '新規アプリ登録',
+    header_edit_app: 'アプリ編集',
+    label_app_id: 'アプリID',
+    label_app_name: 'アプリ表示名',
+    label_base_url: 'ベースURL',
+    placeholder_app_id: '例: todo-app',
+    placeholder_app_name: '表示名を入力',
+    btn_add_app: 'アプリを追加',
+    btn_pause: '停止する',
+    btn_resume: '再開する',
+    status_active: '稼働中',
+    status_inactive: '停止中',
+    confirm_delete_app: '本当に削除しますか？\nこのアプリに関連する全てのユーザー権限・所属権限も完全に削除されます。',
+    
+    // Groups
+    section_groups: '所属管理',
+    header_new_group: '新規所属登録',
+    label_group_name: '所属名',
+    placeholder_group_name: '例: 営業部',
+    btn_add_group: '所属を追加',
+    no_groups: '所属が登録されていません',
+    confirm_delete_group: '本当にこの所属を削除しますか？\nこの所属に設定されているユーザーは「所属なし」になります。',
+    
+    // Users
+    section_users: 'ユーザー管理',
+    header_invite: '新規ユーザー招待',
+    placeholder_invite_email: '招待するメールアドレス',
+    btn_generate_invite: '招待状を作成',
+    header_registered_users: '登録済みユーザー',
+    label_affiliation: '所属',
+    no_affiliation: '所属なし',
+    confirm_delete_user: '本当にこのユーザーを削除しますか？\nこの操作は取り消せません。',
+    
+    // Bulk & Permissions
+    btn_bulk_mode: '一括編集モード',
+    btn_exit_bulk: '一括モード終了',
+    btn_bulk_apply: '一括適用',
+    header_user_details: 'ユーザー詳細・権限',
+    tab_permissions: '権限状況',
+    
+    header_grant: '権限を付与',
+    header_grant_permission: '権限付与',
+    header_active_permissions: '有効な権限リスト',
+    label_user: 'ユーザー',
+    label_app: 'アプリ',
+    label_valid_from: '開始日',
+    label_valid_to: '終了日',
+    btn_grant: '権限付与',
+    permission_source: '適用元',
+    source_user: 'ユーザー個別',
+    source_group: '所属(継承)',
+    msg_override: '※ユーザー個別の設定がある場合、所属の設定より優先されます。',
+    
+    // Modal Specific
+    modal_th_app: 'アプリ名',
+    modal_th_source: '適用元',
+    modal_th_valid: '有効期間',
+    modal_th_action: '操作',
+    modal_section_group: '所属設定',
+    modal_section_perm: '現在の権限',
+    modal_section_add: '権限を追加',
+    modal_label_app: 'アプリを選択 (複数可)',
+    modal_label_no_expire: '無期限',
+    
+    // Date Quick Buttons
+    btn_date_today: '今日',
+    btn_date_start_month: '月初',
+    btn_term_1mo: '+1ヶ月',
+    btn_term_1yr: '+1年',
+    btn_term_forever: '無期限',
+
+    // Logs
+    section_logs: '監査ログ',
+    th_time: '日時',
+    th_event: 'イベント',
+    th_details: '詳細',
+    label_filter_event: 'イベントで絞り込み',
+    option_all_events: '全てのイベント',
+    btn_filter: '適用',
+    pager_prev: '← 前へ',
+    pager_next: '次へ →',
+    pager_info: 'ページ {current} / {total} (全 {count} 件)',
+
+    // Log Events
+    event_APP_CREATED: 'アプリ作成',
+    event_APP_UPDATED: 'アプリ更新',
+    event_APP_DELETED: 'アプリ削除',
+    event_PERMISSION_GRANT: '権限付与',
+    event_PERMISSION_REVOKE: '権限取消',
+    event_USER_UPDATE: 'ユーザー更新',
+    event_USER_DELETED: 'ユーザー削除',
+    event_GROUP_PERMISSION_GRANT: 'G権限付与',
+    event_GROUP_PERMISSION_REVOKE: 'G権限取消',
+    event_GROUP_DELETED: '所属削除',
+    event_LOGIN: 'ログイン',
+    event_PASSWORD_CHANGE: 'パスワード変更',
+
+    // Log Messages
+    log_login: 'ユーザーログイン: {email}',
+    log_app_created: 'アプリ "{appName}" ({id}) 作成者: {admin}',
+    log_app_updated: 'アプリ "{appName}" 更新 (状態: {status}) 実行: {admin}',
+    log_app_deleted: 'アプリ "{id}" 削除 実行: {admin}',
+    log_user_group_update: 'ユーザー {user} の所属を "{group}" に変更 (実行: {admin})',
+    log_permission_grant: 'ユーザー {user} にアプリ [{apps}] を付与 (実行: {admin})',
+    log_permission_revoke: '権限 {id} を取消 (実行: {admin})',
+    log_user_deleted: 'ユーザー {id} を削除 (実行: {admin})',
+    log_group_permission_grant: 'グループ "{group}" にアプリ [{apps}] を付与 (実行: {admin})',
+    log_group_permission_revoke: 'グループ権限 {id} を取消 (実行: {admin})',
+    log_group_deleted: '所属 {id} を削除 (実行: {admin})',
+    log_bulk_update: '一括更新 ({count}名) 実行: {admin} | 所属: {group}, アプリ: {app}',
+    log_password_change: 'ユーザー {email} がパスワードを変更しました',
+
+    // Invite & Reset
+    welcome: 'Tobira へようこそ',
+    setup_desc: 'パスワードを設定します:',
+    reset_desc: 'パスワードを再設定します:',
+    label_new_password: '新しいパスワード',
+    btn_create_account: 'アカウント作成',
+    btn_reset_password: 'パスワード変更',
+    btn_send_link: 'リセットリンクを送信',
+    
+    // Errors/Messages
+    invite_created: '招待リンクを作成しました',
+    invite_copy_hint: 'リンクをコピーしてください。',
+    link_sent: 'アカウントが存在する場合、リセットリンクを送信しました(コンソール確認)',
+    error_credentials: 'メールアドレスまたはパスワードが間違っています',
+    error_required: 'メールアドレスとパスワードを入力してください',
+    error_user_exists: 'ユーザーは既に存在します',
+    error_invalid_invite: '無効なリンクです',
+    error_access_denied: 'アクセス権限がありません',
+    error_not_started: '期間前です',
+    error_expired: '期限切れです',
+    
+    // Stats
+    stat_apps: '登録アプリ数',
+    stat_users: '登録ユーザー数',
+    stat_logs: '総ログ数',
+  }
+}
