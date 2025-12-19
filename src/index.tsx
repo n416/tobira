@@ -180,6 +180,30 @@ app.post('/change-password', async (c) => {
 })
 
 // --- API Token ---
+// --- ユーザー情報取得 (tobira-kagi用) ---
+app.get('/api/me', async (c) => {
+    const authHeader = c.req.header('Authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return c.json({ error: 'Unauthorized' }, 401)
+    }
+    const token = authHeader.split(' ')[1]
+
+    // トークンから有効なセッションを検索
+    const session = await c.env.DB.prepare(
+        'SELECT * FROM app_sessions WHERE token = ? AND expires_at > ?'
+    ).bind(token, Math.floor(Date.now() / 1000)).first()
+
+    if (!session) return c.json({ error: 'Invalid Token' }, 401)
+
+    // ユーザー情報を取得して返却
+    const user = await c.env.DB.prepare(
+        'SELECT id, email, group_id, created_at FROM users WHERE id = ?'
+    ).bind(session.user_id).first()
+
+    if (!user) return c.json({ error: 'User not found' }, 404)
+
+    return c.json(user)
+})
 app.post('/api/token', async (c) => {
     const body = await c.req.json().catch(()=>{})
     const code = body['code']
