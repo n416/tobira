@@ -104,10 +104,7 @@ export const UsersPage = (props: Props) => {
                                 <button class="outline" style="padding:0.2rem 0.5rem; font-size:0.8rem;" 
                                     type="button" onclick="event.preventDefault(); openUserModal('${u.id}')">${t.edit}</button>
                                 
-                                <form method="POST" action="/admin/users/delete" style="margin:0;" onsubmit="return confirm('${t.confirm_delete_user}')">
-                                    <input type="hidden" name="id" value="${u.id}" />
-                                    <button class="outline secondary" style="padding:0.2rem 0.5rem; font-size:0.8rem; border-color:#d32f2f; color:#d32f2f;">${t.delete}</button>
-                                </form>
+                                <button type="button" class="outline secondary" style="padding:0.2rem 0.5rem; font-size:0.8rem; border-color:#d32f2f; color:#d32f2f;" onclick="deleteUser('${u.id}')">${t.delete}</button>
                             </div>
                         </td>
                     </tr>
@@ -115,6 +112,10 @@ export const UsersPage = (props: Props) => {
             </tbody>
             </table>
         </figure>
+      </form>
+
+      <form id="delete-user-form" method="POST" action="/admin/users/delete">
+        <input type="hidden" name="id" value="" />
       </form>
 
       <dialog id="user-modal">
@@ -180,6 +181,14 @@ export const UsersPage = (props: Props) => {
       </dialog>
 
       <script>
+        function deleteUser(id) {
+            // @ts-ignore
+            if(!confirm('${t.confirm_delete_user}')) return;
+            const form = document.getElementById('delete-user-form') as HTMLFormElement;
+            const input = form.querySelector('input[name="id"]') as HTMLInputElement;
+            input.value = id;
+            form.submit();
+        }
         const modal = document.getElementById('user-modal');
         let currentUserId = '';
 
