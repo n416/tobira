@@ -183,7 +183,7 @@ export const UsersPage = (props: Props) => {
       <script>
         function deleteUser(id) {
             // @ts-ignore
-            if(!confirm('${t.confirm_delete_user}')) return;
+            if(!confirm(${JSON.stringify(t.confirm_delete_user)})) return;
             const form = document.getElementById('delete-user-form') as HTMLFormElement;
             const input = form.querySelector('input[name="id"]') as HTMLInputElement;
             input.value = id;
