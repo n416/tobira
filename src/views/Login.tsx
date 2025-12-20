@@ -5,6 +5,7 @@ interface Props {
   t: typeof dict.en
   redirectTo?: string
   error?: string
+  message?: string
 }
 
 export const Login = (props: Props) => {
@@ -21,6 +22,7 @@ export const Login = (props: Props) => {
         body { display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #f9f9f9; }
         .container { max-width: 380px; width: 100%; padding: 1rem; }
         .error { color: #c62828; background: #ffebee; padding: 0.75rem; border-radius: 4px; margin-bottom: 1.5rem; text-align: center; font-size: 0.8rem; }
+        .message { color: #2e7d32; background: #e8f5e9; padding: 0.75rem; border-radius: 4px; margin-bottom: 1.5rem; text-align: center; font-size: 0.8rem; }
         
         /* Minimal Logo Style: Small, lowercase, faint color */
         h1 { 
@@ -54,6 +56,7 @@ export const Login = (props: Props) => {
             <h1>tobira</h1>
             
             ${props.error ? html`<div class="error">${props.error}</div>` : ''}
+            ${props.message ? html`<div class="message">${props.message}</div>` : ''}
             
             <form method="POST" action="/login" style="margin-bottom:0">
               ${props.redirectTo ? html`<input type="hidden" name="redirect_to" value="${props.redirectTo}" />` : ''}

@@ -178,6 +178,7 @@ export const dict = {
     error_access_denied: 'Access Denied',
     error_not_started: 'Not started',
     error_expired: 'Expired',
+    msg_account_created: 'Account created. Please log in.',
     
     // Stats
     stat_apps: 'Applications',
@@ -362,6 +363,7 @@ export const dict = {
     error_access_denied: 'アクセス権限がありません',
     error_not_started: '期間前です',
     error_expired: '期限切れです',
+    msg_account_created: 'アカウントを作成しました。ログインしてください。',
     
     // Stats
     stat_apps: '登録アプリ数',

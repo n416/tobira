@@ -50,7 +50,7 @@ export const GroupsPage = (props: Props) => {
                 <td>
                     <div class="grid" style="grid-template-columns: auto auto; gap: 0.5rem;">
                         <button class="outline" style="padding:0.4rem 0.8rem; font-size:0.8rem; width:100%;" 
-                             onclick="openGroupModal('${g.id}', '${g.name}')">${t.edit}</button>
+                             type="button" onclick="openGroupModal('${g.id}', '${g.name}')">${t.edit}</button>
 
                         <form method="POST" action="/admin/groups/delete" style="margin:0;" onsubmit="return confirm('${t.confirm_delete_group}')">
                              <input type="hidden" name="id" value="${g.id}" />
@@ -85,13 +85,13 @@ export const GroupsPage = (props: Props) => {
                         <label>${t.label_valid_to}</label>
                         <input type="date" id="g-perm-valid-to" />
                         <div class="grid">
-                            <button class="outline secondary" onclick="setGroupDate(1)">${t.btn_term_1mo}</button>
-                            <button class="outline secondary" onclick="setGroupDate(12)">${t.btn_term_1yr}</button>
-                            <button class="outline secondary" onclick="setGroupDate(120)">${t.btn_term_forever}</button>
+                            <button type="button" class="outline secondary" onclick="setGroupDate(1)">${t.btn_term_1mo}</button>
+                            <button type="button" class="outline secondary" onclick="setGroupDate(12)">${t.btn_term_1yr}</button>
+                            <button type="button" class="outline secondary" onclick="setGroupDate(120)">${t.btn_term_forever}</button>
                         </div>
                     </div>
                 </div>
-                <button onclick="grantGroupPermission()">${t.btn_grant}</button>
+                <button type="button" onclick="grantGroupPermission()">${t.btn_grant}</button>
              </div>
           </div>
           
@@ -125,7 +125,7 @@ export const GroupsPage = (props: Props) => {
         function closeGroupModal() { gModal.removeAttribute('open'); }
         
         function loadGroupPerms(id) {
-            fetch('/admin/api/group-details/' + id)
+            fetch('/admin/api/group-details/' + id + '?t=' + new Date().getTime())
                 .then(r => r.json())
                 .then(data => {
                     const tbody = document.getElementById('modal-g-perm-list');
@@ -134,7 +134,7 @@ export const GroupsPage = (props: Props) => {
                         const tr = document.createElement('tr');
                         let html = '<td>' + p.app_name + '</td>';
                         html += '<td>' + new Date(p.valid_to * 1000).toLocaleDateString() + '</td>';
-                        html += '<td><button class="outline secondary" onclick="revokeGroupPerm(' + p.id + ')">❌</button></td>';
+                        html += '<td><button type="button" class="outline secondary" onclick="revokeGroupPerm(' + p.id + ')">❌</button></td>';
                         tr.innerHTML = html;
                         tbody.appendChild(tr);
                     });
@@ -147,7 +147,7 @@ export const GroupsPage = (props: Props) => {
             const validTo = dateVal ? Math.floor(new Date(dateVal).getTime()/1000) : Math.floor(Date.now()/1000) + 315360000;
             
             fetch('/admin/api/group/permission/grant', {
-                method: 'POST', body: JSON.stringify({
+                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({
                     group_id: currentGroupId, app_ids: apps, valid_to: validTo
                 })
             }).then(() => loadGroupPerms(currentGroupId));
@@ -156,7 +156,7 @@ export const GroupsPage = (props: Props) => {
         function revokeGroupPerm(pid) {
             if(!confirm('Revoke?')) return;
             fetch('/admin/api/group/permission/revoke', {
-                method: 'POST', body: JSON.stringify({id: pid})
+                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id: pid})
             }).then(() => loadGroupPerms(currentGroupId));
         }
 

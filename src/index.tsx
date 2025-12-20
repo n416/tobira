@@ -24,44 +24,44 @@ const app = new Hono<{ Bindings: Env }>()
 app.use(csrf())
 
 const getLang = (c: any) => {
-  const accept = c.req.header('Accept-Language') || ''
-  return accept.includes('ja') ? dict.ja : dict.en
+    const accept = c.req.header('Accept-Language') || ''
+    return accept.includes('ja') ? dict.ja : dict.en
 }
 
 // ------------------------------------------------------------------
 // Permissions Logic
 // ------------------------------------------------------------------
-async function checkPermission(c: any, userId: string, appId: string): Promise<{allowed: boolean, reason?: string}> {
-  const now = Math.floor(Date.now() / 1000)
-  
-  const app = await c.env.DB.prepare('SELECT status FROM apps WHERE id = ?').bind(appId).first<App>()
-  if (app && app.status === 'inactive') {
-      return { allowed: false, reason: 'App is paused' }
-  }
+async function checkPermission(c: any, userId: string, appId: string): Promise<{ allowed: boolean, reason?: string }> {
+    const now = Math.floor(Date.now() / 1000)
 
-  const userPerm = await c.env.DB.prepare('SELECT * FROM permissions WHERE user_id = ? AND app_id = ?')
-    .bind(userId, appId).first<Permission>()
-  
-  if (userPerm) {
-    if (userPerm.valid_from <= now && userPerm.valid_to >= now) return { allowed: true }
-    else return { allowed: false, reason: 'User permission expired/invalid' }
-  }
+    const app = await c.env.DB.prepare('SELECT status FROM apps WHERE id = ?').bind(appId).first<App>()
+    if (app && app.status === 'inactive') {
+        return { allowed: false, reason: 'App is paused' }
+    }
 
-  const user = await c.env.DB.prepare('SELECT group_id FROM users WHERE id = ?').bind(userId).first<User>()
-  if (user && user.group_id) {
-    const groupPerm = await c.env.DB.prepare('SELECT * FROM group_permissions WHERE group_id = ? AND app_id = ?')
-      .bind(user.group_id, appId).first<Permission>() 
-    if (groupPerm && groupPerm.valid_from <= now && groupPerm.valid_to >= now) return { allowed: true }
-  }
+    const userPerm = await c.env.DB.prepare('SELECT * FROM permissions WHERE user_id = ? AND app_id = ?')
+        .bind(userId, appId).first<Permission>()
 
-  return { allowed: false, reason: 'No permission found' }
+    if (userPerm) {
+        if (userPerm.valid_from <= now && userPerm.valid_to >= now) return { allowed: true }
+        else return { allowed: false, reason: 'User permission expired/invalid' }
+    }
+
+    const user = await c.env.DB.prepare('SELECT group_id FROM users WHERE id = ?').bind(userId).first<User>()
+    if (user && user.group_id) {
+        const groupPerm = await c.env.DB.prepare('SELECT * FROM group_permissions WHERE group_id = ? AND app_id = ?')
+            .bind(user.group_id, appId).first<Permission>()
+        if (groupPerm && groupPerm.valid_from <= now && groupPerm.valid_to >= now) return { allowed: true }
+    }
+
+    return { allowed: false, reason: 'No permission found' }
 }
 
 async function getAdmin(c: any) {
     const sessionId = getCookie(c, '__Host-idp_session')
-    if(!sessionId) return null
+    if (!sessionId) return null
     const session = await c.env.DB.prepare('SELECT user_id FROM sessions WHERE id = ?').bind(sessionId).first<Session>()
-    if(!session) return null
+    if (!session) return null
     const user = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(session.user_id).first<User>()
     const admin = await c.env.DB.prepare('SELECT * FROM admins WHERE email = ?').bind(user?.email).first()
     return admin ? user : null
@@ -69,9 +69,9 @@ async function getAdmin(c: any) {
 
 async function getUser(c: any) {
     const sessionId = getCookie(c, '__Host-idp_session')
-    if(!sessionId) return null
-    const session = await c.env.DB.prepare('SELECT user_id FROM sessions WHERE id = ? AND expires_at > ?').bind(sessionId, Math.floor(Date.now()/1000)).first<Session>()
-    if(!session) return null
+    if (!sessionId) return null
+    const session = await c.env.DB.prepare('SELECT user_id FROM sessions WHERE id = ? AND expires_at > ?').bind(sessionId, Math.floor(Date.now() / 1000)).first<Session>()
+    if (!session) return null
     return await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(session.user_id).first<User>()
 }
 
@@ -80,12 +80,12 @@ async function getUser(c: any) {
 // ------------------------------------------------------------------
 
 app.get('/', async (c) => {
-  const t = getLang(c)
-  const user = await getUser(c)
-  if (!user) return c.redirect('/login')
+    const t = getLang(c)
+    const user = await getUser(c)
+    if (!user) return c.redirect('/login')
 
-  const now = Math.floor(Date.now()/1000)
-  const { results: apps } = await c.env.DB.prepare(`
+    const now = Math.floor(Date.now() / 1000)
+    const { results: apps } = await c.env.DB.prepare(`
     SELECT DISTINCT a.* FROM apps a
     LEFT JOIN permissions up ON a.id = up.app_id AND up.user_id = ?
     LEFT JOIN group_permissions gp ON a.id = gp.app_id AND gp.group_id = ?
@@ -94,10 +94,26 @@ app.get('/', async (c) => {
       ((up.valid_from <= ? AND up.valid_to >= ?) OR (up.id IS NULL AND gp.valid_from <= ? AND gp.valid_to >= ?))
   `).bind(user.id, user.group_id, now, now, now, now).all()
 
-  return c.html(<UserDashboard t={t} userEmail={user.email} apps={apps as any} />)
+    return c.html(<UserDashboard t={t} userEmail={user.email} apps={apps as any} />)
 })
 
-app.get('/login', (c) => c.html(<Login t={getLang(c)} redirectTo={c.req.query('redirect_to')} />))
+app.get('/login', async (c) => {
+    const t = getLang(c)
+    const redirectTo = c.req.query('redirect_to')
+    const msgKey = c.req.query('msg')
+    // @ts-ignore
+    const message = msgKey && t[msgKey] ? t[msgKey] : undefined
+
+    // SSO Check: ログイン済みならログイン画面をスキップ
+    const user = await getUser(c)
+    if (user) {
+        if (redirectTo) return issueCodeAndRedirect(c, user.id, redirectTo)
+        const admin = await c.env.DB.prepare('SELECT * FROM admins WHERE email = ?').bind(user.email).first()
+        return c.redirect(admin ? '/admin' : '/')
+    }
+
+    return c.html(<Login t={t} redirectTo={redirectTo} message={message} />)
+})
 
 app.post('/login', async (c) => {
     const t = getLang(c)
@@ -110,9 +126,9 @@ app.post('/login', async (c) => {
     if (!user || !(await verifyPassword(password, user.password_hash))) {
         return c.html(<Login t={t} redirectTo={redirectTo} error={t.error_credentials} />)
     }
-    
+
     const sessionId = generateToken()
-    const expires = Math.floor(Date.now()/1000) + 2592000
+    const expires = Math.floor(Date.now() / 1000) + 2592000
     await c.env.DB.prepare('INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)').bind(sessionId, user.id, expires).run()
     setCookie(c, '__Host-idp_session', sessionId, getCookieOptions(expires))
 
@@ -120,39 +136,39 @@ app.post('/login', async (c) => {
     await c.env.DB.prepare('INSERT INTO audit_logs (event_type, details) VALUES (?, ?)').bind('LOGIN', details).run()
 
     if (redirectTo) return issueCodeAndRedirect(c, user.id, redirectTo)
-    
+
     const admin = await c.env.DB.prepare('SELECT * FROM admins WHERE email = ?').bind(email).first()
     return c.redirect(admin ? '/admin' : '/')
 })
 
 async function issueCodeAndRedirect(c: any, userId: string, redirectTo: string) {
-  // Fix: Fetch all active apps and find one where redirectTo starts with base_url
-  const { results } = await c.env.DB.prepare('SELECT * FROM apps WHERE status = ?').bind('active').all<App>()
-  
-  // Find the matching app (Longest match preferred ideally, but simple find is okay for now)
-  const app = (results as App[]).find(a => redirectTo.startsWith(a.base_url))
-  
-  if (!app) {
-      console.error(`[Auth] No app matches redirect_to: ${redirectTo}`);
-      return c.text('Invalid App: Redirect URL not registered', 400)
-  }
+    // Fix: Fetch all active apps and find one where redirectTo starts with base_url
+    const { results } = await c.env.DB.prepare('SELECT * FROM apps WHERE status = ?').bind('active').all<App>()
 
-  const check = await checkPermission(c, userId, app.id)
-  if (!check.allowed) return c.text('Access Denied: ' + (check.reason || ''), 403)
+    // Find the matching app (Longest match preferred ideally, but simple find is okay for now)
+    const app = (results as App[]).find(a => redirectTo.startsWith(a.base_url))
 
-  const code = generateToken()
-  const expires = Math.floor(Date.now()/1000) + 300
-  await c.env.DB.prepare('INSERT INTO auth_codes (code, user_id, app_id, expires_at) VALUES (?, ?, ?, ?)').bind(code, userId, app.id, expires).run()
-  
-  // Append code correctly (handle existing query params)
-  const separator = redirectTo.includes('?') ? '&' : '?'
-  return c.redirect(`${redirectTo}${separator}code=${code}`)
+    if (!app) {
+        console.error(`[Auth] No app matches redirect_to: ${redirectTo}`);
+        return c.text('Invalid App: Redirect URL not registered', 400)
+    }
+
+    const check = await checkPermission(c, userId, app.id)
+    if (!check.allowed) return c.text('Access Denied: ' + (check.reason || ''), 403)
+
+    const code = generateToken()
+    const expires = Math.floor(Date.now() / 1000) + 300
+    await c.env.DB.prepare('INSERT INTO auth_codes (code, user_id, app_id, expires_at) VALUES (?, ?, ?, ?)').bind(code, userId, app.id, expires).run()
+
+    // Append code correctly (handle existing query params)
+    const separator = redirectTo.includes('?') ? '&' : '?'
+    return c.redirect(`${redirectTo}${separator}code=${code}`)
 }
 
 app.get('/logout', async (c) => {
     const sessionId = getCookie(c, '__Host-idp_session')
     if (sessionId) {
-        try { await c.env.DB.prepare('DELETE FROM sessions WHERE id = ?').bind(sessionId).run() } catch(e){}
+        try { await c.env.DB.prepare('DELETE FROM sessions WHERE id = ?').bind(sessionId).run() } catch (e) { }
     }
     setCookie(c, '__Host-idp_session', '', { path: '/', secure: true, httpOnly: true, expires: new Date(0) })
     return c.redirect('/login')
@@ -169,13 +185,13 @@ app.post('/change-password', async (c) => {
     if (!user) return c.redirect('/login')
     const body = await c.req.parseBody()
     const password = body['password'] as string
-    
+
     const pwHash = await hashPassword(password)
     await c.env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(pwHash, user.id).run()
-    
+
     const details = JSON.stringify({ key: 'log_password_change', params: { email: user.email } });
     await c.env.DB.prepare('INSERT INTO audit_logs (event_type, details) VALUES (?, ?)').bind('PASSWORD_CHANGE', details).run()
-    
+
     return c.html(<ChangePassword t={getLang(c)} message={getLang(c).msg_password_changed} />)
 })
 
@@ -205,53 +221,53 @@ app.get('/api/me', async (c) => {
     return c.json(user)
 })
 app.post('/api/token', async (c) => {
-    const body = await c.req.json().catch(()=>{})
+    const body = await c.req.json().catch(() => { })
     const code = body['code']
-    if(!code) return c.json({error:'Missing code'}, 400)
-    
+    if (!code) return c.json({ error: 'Missing code' }, 400)
+
     const authCode = await c.env.DB.prepare('SELECT * FROM auth_codes WHERE code = ?').bind(code).first<AuthCode>()
-    if(!authCode || authCode.expires_at < Date.now()/1000 || authCode.used_at) return c.json({error:'Invalid code'}, 400)
-    
-    await c.env.DB.prepare('UPDATE auth_codes SET used_at = ? WHERE code = ?').bind(Date.now()/1000, code).run()
-    
+    if (!authCode || authCode.expires_at < Date.now() / 1000 || authCode.used_at) return c.json({ error: 'Invalid code' }, 400)
+
+    await c.env.DB.prepare('UPDATE auth_codes SET used_at = ? WHERE code = ?').bind(Date.now() / 1000, code).run()
+
     const token = generateToken()
     const refreshToken = generateToken()
-    const expiresAt = Math.floor(Date.now()/1000) + 3600
-    
+    const expiresAt = Math.floor(Date.now() / 1000) + 3600
+
     await c.env.DB.prepare('INSERT INTO app_sessions (token, refresh_token, user_id, app_id, expires_at) VALUES (?, ?, ?, ?, ?)')
         .bind(token, refreshToken, authCode.user_id, authCode.app_id, expiresAt).run()
-        
+
     return c.json({ access_token: token, refresh_token: refreshToken, expires_in: 3600 })
 })
 
 app.post('/api/refresh', async (c) => {
-    const body = await c.req.json().catch(()=>{})
+    const body = await c.req.json().catch(() => { })
     const refreshToken = body['refresh_token']
-    if(!refreshToken) return c.json({error:'Missing refresh_token'}, 400)
-    
-    const session = await c.env.DB.prepare('SELECT * FROM app_sessions WHERE refresh_token = ?').bind(refreshToken).first<Session & {app_id:string}>()
-    if(!session) return c.json({error:'Invalid refresh token'}, 400)
-    
+    if (!refreshToken) return c.json({ error: 'Missing refresh_token' }, 400)
+
+    const session = await c.env.DB.prepare('SELECT * FROM app_sessions WHERE refresh_token = ?').bind(refreshToken).first<Session & { app_id: string }>()
+    if (!session) return c.json({ error: 'Invalid refresh token' }, 400)
+
     const check = await checkPermission(c, session.user_id, session.app_id)
     if (!check.allowed) {
         await c.env.DB.prepare('DELETE FROM app_sessions WHERE refresh_token = ?').bind(refreshToken).run()
-        return c.json({error: 'Access Denied', details: check.reason}, 403)
+        return c.json({ error: 'Access Denied', details: check.reason }, 403)
     }
-    
+
     const newToken = generateToken()
     const newRefreshToken = generateToken()
-    const newExpiresAt = Math.floor(Date.now()/1000) + 3600
-    
+    const newExpiresAt = Math.floor(Date.now() / 1000) + 3600
+
     await c.env.DB.prepare('UPDATE app_sessions SET token=?, refresh_token=?, expires_at=? WHERE refresh_token=?')
         .bind(newToken, newRefreshToken, newExpiresAt, refreshToken).run()
-        
+
     return c.json({ access_token: newToken, refresh_token: newRefreshToken, expires_in: 3600 })
 })
 
 // --- Admin ---
 app.get('/admin', async (c) => {
     const user = await getAdmin(c)
-    if(!user) return c.redirect('/login')
+    if (!user) return c.redirect('/login')
     const t = getLang(c)
     const stats = {
         apps: await c.env.DB.prepare('SELECT COUNT(*) as c FROM apps').first('c'),
@@ -262,13 +278,13 @@ app.get('/admin', async (c) => {
 })
 app.get('/admin/apps', async (c) => {
     const user = await getAdmin(c)
-    if(!user) return c.redirect('/login')
+    if (!user) return c.redirect('/login')
     const { results } = await c.env.DB.prepare('SELECT * FROM apps ORDER BY created_at DESC').all()
     return c.html(<AppsPage t={getLang(c)} userEmail={user.email} apps={results as any} />)
 })
 app.post('/admin/apps', async (c) => {
     const user = await getAdmin(c)
-    if(!user) return c.redirect('/login')
+    if (!user) return c.redirect('/login')
     const body = await c.req.parseBody()
     await c.env.DB.prepare('INSERT INTO apps (id, name, base_url, status) VALUES (?, ?, ?, ?)')
         .bind(body['id'], body['name'], body['base_url'], 'active').run()
@@ -278,7 +294,7 @@ app.post('/admin/apps', async (c) => {
 })
 app.post('/admin/apps/update', async (c) => {
     const user = await getAdmin(c)
-    if(!user) return c.redirect('/login')
+    if (!user) return c.redirect('/login')
     const body = await c.req.parseBody()
     const id = body['id']
     await c.env.DB.prepare('UPDATE apps SET name = ?, base_url = ? WHERE id = ?')
@@ -289,7 +305,7 @@ app.post('/admin/apps/update', async (c) => {
 })
 app.post('/admin/apps/toggle', async (c) => {
     const user = await getAdmin(c)
-    if(!user) return c.redirect('/login')
+    if (!user) return c.redirect('/login')
     const body = await c.req.parseBody()
     const id = body['id']
     const status = body['status']
@@ -300,7 +316,7 @@ app.post('/admin/apps/toggle', async (c) => {
 })
 app.post('/admin/apps/delete', async (c) => {
     const user = await getAdmin(c)
-    if(!user) return c.redirect('/login')
+    if (!user) return c.redirect('/login')
     const body = await c.req.parseBody()
     const id = body['id']
     await c.env.DB.batch([
@@ -316,14 +332,14 @@ app.post('/admin/apps/delete', async (c) => {
 })
 app.get('/admin/groups', async (c) => {
     const user = await getAdmin(c)
-    if(!user) return c.redirect('/login')
+    if (!user) return c.redirect('/login')
     const groups = await c.env.DB.prepare('SELECT * FROM groups ORDER BY created_at DESC').all()
     const apps = await c.env.DB.prepare('SELECT * FROM apps').all()
     return c.html(<GroupsPage t={getLang(c)} userEmail={user.email} groups={groups.results as any} apps={apps.results as any} />)
 })
 app.post('/admin/groups', async (c) => {
     const user = await getAdmin(c)
-    if(!user) return c.redirect('/login')
+    if (!user) return c.redirect('/login')
     const body = await c.req.parseBody()
     const id = crypto.randomUUID()
     await c.env.DB.prepare('INSERT INTO groups (id, name) VALUES (?, ?)').bind(id, body['name']).run()
@@ -333,10 +349,10 @@ app.post('/admin/groups', async (c) => {
 // ADDED: Delete Group
 app.post('/admin/groups/delete', async (c) => {
     const user = await getAdmin(c)
-    if(!user) return c.redirect('/login')
+    if (!user) return c.redirect('/login')
     const body = await c.req.parseBody()
     const id = body['id'] as string
-    
+
     // Cascading logic: Remove permissions, update users to no group, delete group
     await c.env.DB.batch([
         c.env.DB.prepare('DELETE FROM group_permissions WHERE group_id = ?').bind(id),
@@ -352,7 +368,7 @@ app.post('/admin/groups/delete', async (c) => {
 
 app.get('/admin/users', async (c) => {
     const user = await getAdmin(c)
-    if(!user) return c.redirect('/login')
+    if (!user) return c.redirect('/login')
     const users = await c.env.DB.prepare('SELECT * FROM users ORDER BY created_at DESC').all()
     const apps = await c.env.DB.prepare('SELECT * FROM apps').all()
     const groups = await c.env.DB.prepare('SELECT * FROM groups').all()
@@ -360,14 +376,14 @@ app.get('/admin/users', async (c) => {
 })
 app.post('/admin/invite', async (c) => {
     const user = await getAdmin(c)
-    if(!user) return c.redirect('/login')
+    if (!user) return c.redirect('/login')
     const body = await c.req.parseBody()
     const email = body['email'] as string
-    if(!email) return c.redirect('/admin/users?error=Email required')
+    if (!email) return c.redirect('/admin/users?error=Email required')
     const token = generateToken()
     const expiresAt = Math.floor(Date.now() / 1000) + 86400
-    try { await c.env.DB.prepare('INSERT INTO invitations (id, email, invited_by, expires_at) VALUES (?, ?, ?, ?)').bind(token, email, user.id, expiresAt).run() } 
-    catch (e:any) { return c.redirect(`/admin/users?error=${encodeURIComponent('Error: ' + e.message)}`) }
+    try { await c.env.DB.prepare('INSERT INTO invitations (id, email, invited_by, expires_at) VALUES (?, ?, ?, ?)').bind(token, email, user.id, expiresAt).run() }
+    catch (e: any) { return c.redirect(`/admin/users?error=${encodeURIComponent('Error: ' + e.message)}`) }
     const url = new URL(c.req.url)
     return c.redirect(`/admin/users?invite_url=${encodeURIComponent(url.protocol + '//' + url.host + '/invite?token=' + token)}`)
 })
@@ -375,10 +391,10 @@ app.post('/admin/invite', async (c) => {
 // ADDED: Delete User
 app.post('/admin/users/delete', async (c) => {
     const user = await getAdmin(c)
-    if(!user) return c.redirect('/login')
+    if (!user) return c.redirect('/login')
     const body = await c.req.parseBody()
     const id = body['id'] as string
-    
+
     // Cascading delete
     await c.env.DB.batch([
         c.env.DB.prepare('DELETE FROM permissions WHERE user_id = ?').bind(id),
@@ -392,13 +408,13 @@ app.post('/admin/users/delete', async (c) => {
 
     const details = JSON.stringify({ key: 'log_user_deleted', params: { id: id, admin: user.email } });
     await c.env.DB.prepare('INSERT INTO audit_logs (event_type, details) VALUES (?, ?)').bind('USER_DELETED', details).run()
-    
+
     return c.redirect('/admin/users')
 })
 
 app.post('/admin/users/bulk', async (c) => {
     const user = await getAdmin(c)
-    if(!user) return c.redirect('/login')
+    if (!user) return c.redirect('/login')
     const text = await c.req.text()
     const params = new URLSearchParams(text)
     const ids = params.getAll('user_ids')
@@ -412,7 +428,7 @@ app.post('/admin/users/bulk', async (c) => {
             await c.env.DB.prepare('UPDATE users SET group_id = ? WHERE id = ?').bind(val, uid).run()
         }
         if (val) {
-            const g = await c.env.DB.prepare('SELECT name FROM groups WHERE id = ?').bind(val).first<{name:string}>();
+            const g = await c.env.DB.prepare('SELECT name FROM groups WHERE id = ?').bind(val).first<{ name: string }>();
             gName = g ? g.name : val;
         } else {
             gName = 'None';
@@ -420,39 +436,39 @@ app.post('/admin/users/bulk', async (c) => {
     }
     let aName = null;
     if (appId) {
-        const start = Math.floor(Date.now()/1000)
-        const end = start + 31536000 
+        const start = Math.floor(Date.now() / 1000)
+        const end = start + 31536000
         for (const uid of ids) {
             await c.env.DB.prepare(`
                 INSERT INTO permissions (user_id, app_id, valid_from, valid_to) VALUES (?, ?, ?, ?)
                 ON CONFLICT(user_id, app_id) DO UPDATE SET valid_from=?, valid_to=?
             `).bind(uid, appId, start, end, start, end).run()
         }
-        const a = await c.env.DB.prepare('SELECT name FROM apps WHERE id = ?').bind(appId).first<{name:string}>();
+        const a = await c.env.DB.prepare('SELECT name FROM apps WHERE id = ?').bind(appId).first<{ name: string }>();
         aName = a ? a.name : appId;
     }
-    const details = JSON.stringify({ 
-        key: 'log_bulk_update', 
-        params: { count: ids.length, admin: user.email, group: gName || '-', app: aName || '-' } 
+    const details = JSON.stringify({
+        key: 'log_bulk_update',
+        params: { count: ids.length, admin: user.email, group: gName || '-', app: aName || '-' }
     });
     await c.env.DB.prepare('INSERT INTO audit_logs (event_type, details) VALUES (?, ?)').bind('USER_UPDATE', details).run()
     return c.redirect('/admin/users')
 })
 app.get('/admin/api/user-details/:id', async (c) => {
-    if(!await getAdmin(c)) return c.json({error: 'Unauthorized'}, 401)
+    if (!await getAdmin(c)) return c.json({ error: 'Unauthorized' }, 401)
     const userId = c.req.param('id')
     const user = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first<User>()
-    if(!user) return c.json({error: 'Not found'}, 404)
+    if (!user) return c.json({ error: 'Not found' }, 404)
     const { results: direct } = await c.env.DB.prepare('SELECT p.*, a.name as app_name FROM permissions p JOIN apps a ON p.app_id = a.id WHERE p.user_id = ?').bind(userId).all()
     let groupPerms: any[] = []
     if (user.group_id) {
         const res = await c.env.DB.prepare('SELECT p.*, a.name as app_name FROM group_permissions p JOIN apps a ON p.app_id = a.id WHERE p.group_id = ?').bind(user.group_id).all()
         groupPerms = res.results
     }
-    const allApps = await c.env.DB.prepare('SELECT id, name FROM apps').all<{id:string, name:string}>()
+    const allApps = await c.env.DB.prepare('SELECT id, name FROM apps').all<{ id: string, name: string }>()
     const combined = allApps.results.map(app => {
-        const d = direct.find((x:any) => x.app_id === app.id)
-        const g = groupPerms.find((x:any) => x.app_id === app.id)
+        const d = direct.find((x: any) => x.app_id === app.id)
+        const g = groupPerms.find((x: any) => x.app_id === app.id)
         if (d) return { ...d, source: 'user', is_override: true }
         if (g) return { ...g, source: 'group', is_override: false }
         return null
@@ -461,33 +477,33 @@ app.get('/admin/api/user-details/:id', async (c) => {
 })
 app.post('/admin/api/user/group', async (c) => {
     const user = await getAdmin(c)
-    if(!user) return c.json({error: 'Unauthorized'}, 401)
+    if (!user) return c.json({ error: 'Unauthorized' }, 401)
     const body = await c.req.json()
     const userId = body['user_id']
     const groupId = body['group_id'] || null
     await c.env.DB.prepare('UPDATE users SET group_id = ? WHERE id = ?').bind(groupId || null, userId).run()
     let gName = 'None';
-    if(groupId) {
-        const g = await c.env.DB.prepare('SELECT name FROM groups WHERE id = ?').bind(groupId).first<{name:string}>();
-        if(g) gName = g.name;
+    if (groupId) {
+        const g = await c.env.DB.prepare('SELECT name FROM groups WHERE id = ?').bind(groupId).first<{ name: string }>();
+        if (g) gName = g.name;
     }
     const details = JSON.stringify({ key: 'log_user_group_update', params: { user: userId, group: gName, admin: user.email } });
     await c.env.DB.prepare('INSERT INTO audit_logs (event_type, details) VALUES (?, ?)').bind('USER_UPDATE', details).run()
-    return c.json({success: true})
+    return c.json({ success: true })
 })
 app.post('/admin/api/user/permission/revoke', async (c) => {
     const user = await getAdmin(c)
-    if(!user) return c.json({error: 'Unauthorized'}, 401)
+    if (!user) return c.json({ error: 'Unauthorized' }, 401)
     const body = await c.req.json()
     const id = body['id']
     await c.env.DB.prepare('DELETE FROM permissions WHERE id = ?').bind(id).run()
     const details = JSON.stringify({ key: 'log_permission_revoke', params: { id: id, admin: user.email } });
     await c.env.DB.prepare('INSERT INTO audit_logs (event_type, details) VALUES (?, ?)').bind('PERMISSION_REVOKE', details).run()
-    return c.json({success: true})
+    return c.json({ success: true })
 })
 app.post('/admin/api/user/permission/grant', async (c) => {
     const user = await getAdmin(c)
-    if(!user) return c.json({error: 'Unauthorized'}, 401)
+    if (!user) return c.json({ error: 'Unauthorized' }, 401)
     const body = await c.req.json()
     const userId = body['user_id']
     const appIds = body['app_ids']
@@ -497,20 +513,20 @@ app.post('/admin/api/user/permission/grant', async (c) => {
     const targets = Array.isArray(appIds) ? appIds : [appId]
     const appNames = [];
     for (const aid of targets) {
-        if(!aid) continue
+        if (!aid) continue
         await c.env.DB.prepare(`
             INSERT INTO permissions (user_id, app_id, valid_from, valid_to) VALUES (?, ?, ?, ?)
             ON CONFLICT(user_id, app_id) DO UPDATE SET valid_from=?, valid_to=?
         `).bind(userId, aid, validFrom, validTo, validFrom, validTo).run()
-        const a = await c.env.DB.prepare('SELECT name FROM apps WHERE id = ?').bind(aid).first<{name:string}>();
-        if(a) appNames.push(a.name);
+        const a = await c.env.DB.prepare('SELECT name FROM apps WHERE id = ?').bind(aid).first<{ name: string }>();
+        if (a) appNames.push(a.name);
     }
     const details = JSON.stringify({ key: 'log_permission_grant', params: { apps: appNames.join(', '), user: userId, admin: user.email } });
     await c.env.DB.prepare('INSERT INTO audit_logs (event_type, details) VALUES (?, ?)').bind('PERMISSION_GRANT', details).run()
-    return c.json({success: true})
+    return c.json({ success: true })
 })
 app.get('/admin/api/group-details/:id', async (c) => {
-    if(!await getAdmin(c)) return c.json({error: 'Unauthorized'}, 401)
+    if (!await getAdmin(c)) return c.json({ error: 'Unauthorized' }, 401)
     const groupId = c.req.param('id')
     const { results } = await c.env.DB.prepare(`
         SELECT p.*, a.name as app_name 
@@ -522,7 +538,7 @@ app.get('/admin/api/group-details/:id', async (c) => {
 })
 app.post('/admin/api/group/permission/grant', async (c) => {
     const user = await getAdmin(c)
-    if(!user) return c.json({error: 'Unauthorized'}, 401)
+    if (!user) return c.json({ error: 'Unauthorized' }, 401)
     const body = await c.req.json()
     const groupId = body['group_id']
     const appIds = body['app_ids']
@@ -531,33 +547,33 @@ app.post('/admin/api/group/permission/grant', async (c) => {
     const targets = Array.isArray(appIds) ? appIds : []
     const appNames = [];
     for (const aid of targets) {
-        if(!aid) continue
+        if (!aid) continue
         await c.env.DB.prepare(`
             INSERT INTO group_permissions (group_id, app_id, valid_from, valid_to) VALUES (?, ?, ?, ?)
             ON CONFLICT(group_id, app_id) DO UPDATE SET valid_from=?, valid_to=?
         `).bind(groupId, aid, validFrom, validTo, validFrom, validTo).run()
-        const a = await c.env.DB.prepare('SELECT name FROM apps WHERE id = ?').bind(aid).first<{name:string}>();
-        if(a) appNames.push(a.name);
+        const a = await c.env.DB.prepare('SELECT name FROM apps WHERE id = ?').bind(aid).first<{ name: string }>();
+        if (a) appNames.push(a.name);
     }
-    const g = await c.env.DB.prepare('SELECT name FROM groups WHERE id = ?').bind(groupId).first<{name:string}>();
+    const g = await c.env.DB.prepare('SELECT name FROM groups WHERE id = ?').bind(groupId).first<{ name: string }>();
     const gName = g ? g.name : groupId;
     const details = JSON.stringify({ key: 'log_group_permission_grant', params: { apps: appNames.join(', '), group: gName, admin: user.email } });
     await c.env.DB.prepare('INSERT INTO audit_logs (event_type, details) VALUES (?, ?)').bind('GROUP_PERMISSION_GRANT', details).run()
-    return c.json({success: true})
+    return c.json({ success: true })
 })
 app.post('/admin/api/group/permission/revoke', async (c) => {
     const user = await getAdmin(c)
-    if(!user) return c.json({error: 'Unauthorized'}, 401)
+    if (!user) return c.json({ error: 'Unauthorized' }, 401)
     const body = await c.req.json()
     const id = body['id']
     await c.env.DB.prepare('DELETE FROM group_permissions WHERE id = ?').bind(id).run()
     const details = JSON.stringify({ key: 'log_group_permission_revoke', params: { id: id, admin: user.email } });
     await c.env.DB.prepare('INSERT INTO audit_logs (event_type, details) VALUES (?, ?)').bind('GROUP_PERMISSION_REVOKE', details).run()
-    return c.json({success: true})
+    return c.json({ success: true })
 })
 app.get('/admin/logs', async (c) => {
     const user = await getAdmin(c)
-    if(!user) return c.redirect('/login')
+    if (!user) return c.redirect('/login')
     const page = parseInt(c.req.query('page') || '1');
     const filterEvent = c.req.query('event') || '';
     const pageSize = 50;
@@ -575,13 +591,13 @@ app.get('/admin/logs', async (c) => {
     params.push(pageSize, offset);
     const { results } = await c.env.DB.prepare(query).bind(...params).all();
     const countParams = filterEvent ? [filterEvent] : [];
-    const totalRes = await c.env.DB.prepare(countQuery).bind(...countParams).first<{c:number}>();
+    const totalRes = await c.env.DB.prepare(countQuery).bind(...countParams).first<{ c: number }>();
     const totalCount = totalRes?.c || 0;
     const totalPages = Math.ceil(totalCount / pageSize);
-    return c.html(<LogsPage 
-        t={getLang(c)} 
-        userEmail={user.email} 
-        logs={results as any} 
+    return c.html(<LogsPage
+        t={getLang(c)}
+        userEmail={user.email}
+        logs={results as any}
         currentPage={page}
         totalPages={totalPages}
         totalCount={totalCount}
@@ -591,62 +607,61 @@ app.get('/admin/logs', async (c) => {
 
 // --- Invite Routes (ADDED) ---
 app.get('/invite', async (c) => {
-  const t = getLang(c)
-  const token = c.req.query('token')
-  if (!token) return c.html(<Invite t={t} error={t.error_invalid_invite} />)
-  
-  const invite = await c.env.DB.prepare('SELECT * FROM invitations WHERE id = ? AND expires_at > ?')
-    .bind(token, Math.floor(Date.now() / 1000)).first<{email: string}>()
-    
-  if (!invite) return c.html(<Invite t={t} error={t.error_invalid_invite} />)
-  
-  return c.html(<Invite t={t} token={token} email={invite.email} />)
+    const t = getLang(c)
+    const token = c.req.query('token')
+    if (!token) return c.html(<Invite t={t} error={t.error_invalid_invite} />)
+
+    const invite = await c.env.DB.prepare('SELECT * FROM invitations WHERE id = ? AND expires_at > ?')
+        .bind(token, Math.floor(Date.now() / 1000)).first<{ email: string }>()
+
+    if (!invite) return c.html(<Invite t={t} error={t.error_invalid_invite} />)
+
+    return c.html(<Invite t={t} token={token} email={invite.email} />)
 })
 
 app.post('/invite', async (c) => {
-  const t = getLang(c)
-  const body = await c.req.parseBody()
-  const token = body['token'] as string
-  const password = body['password'] as string
-  
-  const invite = await c.env.DB.prepare('SELECT * FROM invitations WHERE id = ? AND expires_at > ?')
-    .bind(token, Math.floor(Date.now() / 1000)).first<{email: string}>()
-    
-  if (!invite) return c.html(<Invite t={t} error={t.error_invalid_invite} />)
-  
-  // Create User
-  const userId = crypto.randomUUID()
-  const pwHash = await hashPassword(password)
-  const now = Math.floor(Date.now() / 1000)
-  
-  try {
-    await c.env.DB.prepare('INSERT INTO users (id, email, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
-      .bind(userId, invite.email, pwHash, now, now).run()
-      
-    // Delete invitation
-    await c.env.DB.prepare('DELETE FROM invitations WHERE id = ?').bind(token).run()
-    
-    return c.redirect('/login')
-  } catch (e) {
-    return c.html(<Invite t={t} token={token} error={t.error_user_exists} />)
-  }
+    const t = getLang(c)
+    const body = await c.req.parseBody()
+    const token = body['token'] as string
+    const password = body['password'] as string
+
+    const invite = await c.env.DB.prepare('SELECT * FROM invitations WHERE id = ? AND expires_at > ?')
+        .bind(token, Math.floor(Date.now() / 1000)).first<{ email: string }>()
+
+    if (!invite) return c.html(<Invite t={t} error={t.error_invalid_invite} />)
+
+    // Create User
+    const userId = crypto.randomUUID()
+    const pwHash = await hashPassword(password)
+    const now = Math.floor(Date.now() / 1000)
+
+    try {
+        await c.env.DB.prepare('INSERT INTO users (id, email, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
+            .bind(userId, invite.email, pwHash, now, now).run()
+
+        // Delete invitation
+        await c.env.DB.prepare('DELETE FROM invitations WHERE id = ?').bind(token).run()
+        return c.redirect('/login?msg=msg_account_created')
+    } catch (e) {
+        return c.html(<Invite t={t} token={token} error={t.error_user_exists} />)
+    }
 })
 
 // Forgot Password Routes
 app.get('/forgot-password', (c) => c.html(<ForgotPassword t={getLang(c)} />))
 app.post('/forgot-password', async (c) => {
-  const t = getLang(c)
-  const body = await c.req.parseBody()
-  const email = body['email'] as string
-  const user = await c.env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first<User>()
-  if (user) {
-    const token = generateToken()
-    const expires = Math.floor(Date.now() / 1000) + 3600
-    await c.env.DB.prepare('INSERT INTO password_resets (token, user_id, expires_at) VALUES (?, ?, ?)').bind(token, user.id, expires).run()
-    
-    // Bilingual Email
-    const resetLink = `${new URL(c.req.url).origin}/reset-password?token=${token}`;
-    const htmlBody = `
+    const t = getLang(c)
+    const body = await c.req.parseBody()
+    const email = body['email'] as string
+    const user = await c.env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first<User>()
+    if (user) {
+        const token = generateToken()
+        const expires = Math.floor(Date.now() / 1000) + 3600
+        await c.env.DB.prepare('INSERT INTO password_resets (token, user_id, expires_at) VALUES (?, ?, ?)').bind(token, user.id, expires).run()
+
+        // Bilingual Email
+        const resetLink = `${new URL(c.req.url).origin}/reset-password?token=${token}`;
+        const htmlBody = `
       <div style="font-family: sans-serif; color: #333; line-height: 1.6;">
         <p><strong>Password Reset</strong></p>
         <p>Hello,</p>
@@ -664,31 +679,31 @@ app.post('/forgot-password', async (c) => {
         <p style="color: #666; font-size: 0.9em;">お心当たりがない場合は、このメールを無視してください。</p>
       </div>
     `;
-    await sendEmail(c.env, email, 'Password Reset / パスワードリセット', htmlBody);
-  }
-  return c.html(<ForgotPassword t={t} message={t.link_sent} />)
+        await sendEmail(c.env, email, 'Password Reset / パスワードリセット', htmlBody);
+    }
+    return c.html(<ForgotPassword t={t} message={t.link_sent} />)
 })
 app.get('/reset-password', async (c) => {
-  const t = getLang(c)
-  const token = c.req.query('token')
-  if (!token) return c.redirect('/forgot-password')
-  const reset = await c.env.DB.prepare('SELECT * FROM password_resets WHERE token = ? AND expires_at > ?').bind(token, Math.floor(Date.now() / 1000)).first()
-  if (!reset) return c.html(<ResetPassword t={t} token="" error={t.error_invalid_invite} />)
-  return c.html(<ResetPassword t={t} token={token} />)
+    const t = getLang(c)
+    const token = c.req.query('token')
+    if (!token) return c.redirect('/forgot-password')
+    const reset = await c.env.DB.prepare('SELECT * FROM password_resets WHERE token = ? AND expires_at > ?').bind(token, Math.floor(Date.now() / 1000)).first()
+    if (!reset) return c.html(<ResetPassword t={t} token="" error={t.error_invalid_invite} />)
+    return c.html(<ResetPassword t={t} token={token} />)
 })
 app.post('/reset-password', async (c) => {
-  const t = getLang(c)
-  const body = await c.req.parseBody()
-  const token = body['token'] as string
-  const password = body['password'] as string
-  const reset = await c.env.DB.prepare('SELECT * FROM password_resets WHERE token = ? AND expires_at > ?').bind(token, Math.floor(Date.now() / 1000)).first<{user_id: string}>()
-  if (!reset) return c.html(<ResetPassword t={t} token="" error={t.error_invalid_invite} />)
-  const pwHash = await hashPassword(password)
-  await c.env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(pwHash, reset.user_id).run()
-  await c.env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(reset.user_id).run()
-  try { await c.env.DB.prepare('DELETE FROM app_sessions WHERE user_id = ?').bind(reset.user_id).run() } catch(e) {}
-  await c.env.DB.prepare('DELETE FROM password_resets WHERE token = ?').bind(token).run()
-  return c.redirect('/login')
+    const t = getLang(c)
+    const body = await c.req.parseBody()
+    const token = body['token'] as string
+    const password = body['password'] as string
+    const reset = await c.env.DB.prepare('SELECT * FROM password_resets WHERE token = ? AND expires_at > ?').bind(token, Math.floor(Date.now() / 1000)).first<{ user_id: string }>()
+    if (!reset) return c.html(<ResetPassword t={t} token="" error={t.error_invalid_invite} />)
+    const pwHash = await hashPassword(password)
+    await c.env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(pwHash, reset.user_id).run()
+    await c.env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(reset.user_id).run()
+    try { await c.env.DB.prepare('DELETE FROM app_sessions WHERE user_id = ?').bind(reset.user_id).run() } catch (e) { }
+    await c.env.DB.prepare('DELETE FROM password_resets WHERE token = ?').bind(token).run()
+    return c.redirect('/login')
 })
 
 

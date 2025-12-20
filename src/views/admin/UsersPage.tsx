@@ -26,7 +26,7 @@ export const UsersPage = (props: Props) => {
           <h3>${t.header_invite}</h3>
         </hgroup>
         <div style="text-align:right">
-           <button id="toggleBulkMode" class="outline">${t.btn_bulk_mode}</button>
+           <button type="button" id="toggleBulkMode" class="outline">${t.btn_bulk_mode}</button>
         </div>
       </div>
       
@@ -102,7 +102,7 @@ export const UsersPage = (props: Props) => {
                         <td>
                             <div class="grid" style="grid-template-columns: auto auto; gap: 0.5rem;">
                                 <button class="outline" style="padding:0.2rem 0.5rem; font-size:0.8rem;" 
-                                    onclick="event.preventDefault(); openUserModal('${u.id}')">${t.edit}</button>
+                                    type="button" onclick="event.preventDefault(); openUserModal('${u.id}')">${t.edit}</button>
                                 
                                 <form method="POST" action="/admin/users/delete" style="margin:0;" onsubmit="return confirm('${t.confirm_delete_user}')">
                                     <input type="hidden" name="id" value="${u.id}" />
@@ -132,7 +132,7 @@ export const UsersPage = (props: Props) => {
                         <option value="">${t.no_affiliation}</option>
                         ${props.groups.map(g => html`<option value="${g.id}">${g.name}</option>`)}
                     </select>
-                    <button class="outline" onclick="updateGroup()">${t.save}</button>
+                    <button type="button" class="outline" onclick="updateGroup()">${t.save}</button>
                 </div>
             </div>
           </div>
@@ -154,13 +154,13 @@ export const UsersPage = (props: Props) => {
                     <label>${t.label_valid_to}</label>
                     <input type="date" id="perm-valid-to" />
                     <div class="grid">
-                        <button class="outline secondary" onclick="setQuickDate(1)">${t.btn_term_1mo}</button>
-                        <button class="outline secondary" onclick="setQuickDate(12)">${t.btn_term_1yr}</button>
-                        <button class="outline secondary" onclick="setQuickDate(120)">${t.btn_term_forever}</button>
+                        <button type="button" class="outline secondary" onclick="setQuickDate(1)">${t.btn_term_1mo}</button>
+                        <button type="button" class="outline secondary" onclick="setQuickDate(12)">${t.btn_term_1yr}</button>
+                        <button type="button" class="outline secondary" onclick="setQuickDate(120)">${t.btn_term_forever}</button>
                     </div>
                 </div>
             </div>
-            <button onclick="grantPermission()">${t.btn_grant}</button>
+            <button type="button" onclick="grantPermission()">${t.btn_grant}</button>
           </details>
 
           <figure>
@@ -186,7 +186,7 @@ export const UsersPage = (props: Props) => {
         function openUserModal(id) {
             currentUserId = id;
             modal.setAttribute('open', true);
-            fetch('/admin/api/user-details/' + id)
+            fetch('/admin/api/user-details/' + id + '?t=' + new Date().getTime())
                 .then(r => r.json())
                 .then(data => {
                     document.getElementById('modal-user-email').innerText = data.email;
@@ -211,7 +211,7 @@ export const UsersPage = (props: Props) => {
                 html += '<td>' + new Date(p.valid_to * 1000).toLocaleDateString() + '</td>';
                 html += '<td>';
                 if (p.source === 'user') {
-                    html += '<button class="outline secondary" onclick="revokePerm(' + p.id + ')">❌</button>';
+                    html += '<button type="button" class="outline secondary" onclick="revokePerm(' + p.id + ')">❌</button>';
                 }
                 html += '</td>';
                 tr.innerHTML = html;
@@ -222,15 +222,47 @@ export const UsersPage = (props: Props) => {
         function updateGroup() {
             const gid = document.getElementById('modal-group-select').value;
             fetch('/admin/api/user/group', {
-                method: 'POST', body: JSON.stringify({user_id: currentUserId, group_id: gid})
-            }).then(() => openUserModal(currentUserId));
+                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({user_id: currentUserId, group_id: gid})
+            }).then(() => {
+                // 背景のテーブル行（所属カラム）を即座に更新する
+                const select = document.getElementById('modal-group-select');
+                if (select) {
+                    const gName = select.options[select.selectedIndex].text;
+                    // このユーザーの編集ボタンを探して、対応する行(tr)を特定する
+                    const btn = document.querySelector('button[onclick*="' + currentUserId + '"]');
+                    if(btn) {
+                        const row = btn.closest('tr');
+                        // カラム構成: 0:Checkbox(hidden), 1:Email, 2:Group, 3:Action
+                        if(row && row.cells.length > 2) {
+                            row.cells[2].innerText = gName;
+                        }
+                    }
+                }
+                closeUserModal();
+            });
         }
         
         function revokePerm(pid) {
             if(!confirm('Revoke?')) return;
             fetch('/admin/api/user/permission/revoke', {
-                method: 'POST', body: JSON.stringify({id: pid})
-            }).then(() => openUserModal(currentUserId));
+                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id: pid})
+            }).then(() => {
+                // 背景のテーブル行（所属カラム）を即座に更新する
+                const select = document.getElementById('modal-group-select');
+                if (select) {
+                    const gName = select.options[select.selectedIndex].text;
+                    // このユーザーの編集ボタンを探して、対応する行(tr)を特定する
+                    const btn = document.querySelector('button[onclick*="' + currentUserId + '"]');
+                    if(btn) {
+                        const row = btn.closest('tr');
+                        // カラム構成: 0:Checkbox(hidden), 1:Email, 2:Group, 3:Action
+                        if(row && row.cells.length > 2) {
+                            row.cells[2].innerText = gName;
+                        }
+                    }
+                }
+                closeUserModal();
+            });
         }
 
         function grantPermission() {
@@ -239,10 +271,26 @@ export const UsersPage = (props: Props) => {
             const validTo = dateVal ? Math.floor(new Date(dateVal).getTime()/1000) : Math.floor(Date.now()/1000) + 315360000;
             
             fetch('/admin/api/user/permission/grant', {
-                method: 'POST', body: JSON.stringify({
+                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({
                     user_id: currentUserId, app_ids: apps, valid_to: validTo
                 })
-            }).then(() => openUserModal(currentUserId));
+            }).then(() => {
+                // 背景のテーブル行（所属カラム）を即座に更新する
+                const select = document.getElementById('modal-group-select');
+                if (select) {
+                    const gName = select.options[select.selectedIndex].text;
+                    // このユーザーの編集ボタンを探して、対応する行(tr)を特定する
+                    const btn = document.querySelector('button[onclick*="' + currentUserId + '"]');
+                    if(btn) {
+                        const row = btn.closest('tr');
+                        // カラム構成: 0:Checkbox(hidden), 1:Email, 2:Group, 3:Action
+                        if(row && row.cells.length > 2) {
+                            row.cells[2].innerText = gName;
+                        }
+                    }
+                }
+                closeUserModal();
+            });
         }
         
         function setQuickDate(months) {

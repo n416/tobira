@@ -75,7 +75,7 @@ export const AppsPage = (props: Props) => {
                     </form>
                     
                     <button class="outline" style="padding:0.3rem 0.6rem; font-size:0.8rem;" 
-                        onclick="document.getElementById('edit-app-${app.id}').setAttribute('open',true)">${t.edit}</button>
+                        type="button" onclick="document.getElementById('edit-app-${app.id}').setAttribute('open',true)">${t.edit}</button>
 
                     <form method="POST" action="/admin/apps/delete" style="margin:0;" onsubmit="return confirm('${t.confirm_delete_app}')">
                         <input type="hidden" name="id" value="${app.id}" />
