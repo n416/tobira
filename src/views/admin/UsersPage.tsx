@@ -1,4 +1,4 @@
-import { html } from 'hono/html'
+import { html, raw } from 'hono/html'
 import { Layout } from './Layout'
 import { dict } from '../../i18n'
 import { User, App, Group } from '../../types'
@@ -183,9 +183,9 @@ export const UsersPage = (props: Props) => {
       <script>
         function deleteUser(id) {
             // @ts-ignore
-            if(!confirm(${JSON.stringify(t.confirm_delete_user)})) return;
-            const form = document.getElementById('delete-user-form') as HTMLFormElement;
-            const input = form.querySelector('input[name="id"]') as HTMLInputElement;
+            if(!confirm(${raw(JSON.stringify(t.confirm_delete_user))})) return;
+            const form = document.getElementById('delete-user-form');
+            const input = form.querySelector('input[name="id"]');
             input.value = id;
             form.submit();
         }
