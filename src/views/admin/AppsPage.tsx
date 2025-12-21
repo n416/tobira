@@ -2,6 +2,7 @@ import { html, raw } from 'hono/html'
 import { Layout } from './Layout'
 import { dict } from '../../i18n'
 import { App } from '../../types'
+import { Modal } from '../components/Modal'
 
 interface Props {
   t: typeof dict.en
@@ -196,7 +197,7 @@ export const AppsPage = (props: Props) => {
         .action-btn:hover { background: #f1f5f9 !important; color: var(--text-main) !important; }
         .action-btn.delete:hover { background: #fef2f2 !important; color: #ef4444 !important; }
 
-        /* --- Tom Select Customization (Specific Fix) --- */
+        /* --- Tom Select Customization --- */
         .ts-control {
             background-color: #ffffff !important;
             border: 1px solid #cbd5e1 !important;
@@ -268,7 +269,13 @@ export const AppsPage = (props: Props) => {
         }
         
         /* Modal tweaks */
-        dialog article { padding: 0 !important; overflow: hidden; border-radius: 20px !important; max-width: 600px; }
+        dialog article { 
+            padding: 0 !important; 
+            overflow: hidden; 
+            border-radius: 20px !important; 
+            max-width: 750px; /* UPDATED from 600px */
+            width: 100%;      /* ADDED */
+        }
         .modal-header { padding: 1.5rem 2rem; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; }
         .modal-body { padding: 2rem; max-height: 80vh; overflow-y: auto; }
         .modal-title { font-size: 1.25rem; font-weight: 700; color: #0f172a; }
@@ -294,15 +301,11 @@ export const AppsPage = (props: Props) => {
         </button>
       </div>
 
-      <dialog id="new-app-modal">
-        <article>
-          <header class="modal-header">
-            <div class="modal-title">${t.header_new_app}</div>
-            <a href="#close" aria-label="Close" class="action-btn" onclick="this.closest('dialog').close()">
-                <span class="material-symbols-outlined">close</span>
-            </a>
-          </header>
-          <div class="modal-body">
+      ${Modal({
+        id: "new-app-modal",
+        title: t.header_new_app,
+        closeAction: "this.closest('dialog').close()",
+        children: html`
               <form method="POST" action="/admin/apps">
                 <div class="grid-vertical" style="display:flex; flex-direction:column; gap:1.5rem;">
                     <label style="width:100%;">
@@ -322,9 +325,8 @@ export const AppsPage = (props: Props) => {
                     </button>
                 </div>
               </form>
-          </div>
-        </article>
-      </dialog>
+        `
+      })}
 
       <div class="list-grid">
         ${props.apps.map(app => html`
@@ -364,15 +366,12 @@ export const AppsPage = (props: Props) => {
         `)}
       </div>
 
-      <dialog id="edit-app-modal">
-        <article>
-          <header class="modal-header">
-            <div class="modal-title">${t.header_edit_app}</div>
-            <a href="#close" id="edit-close-btn" aria-label="Close" class="action-btn" onclick="closeEditAppModal()">
-                <span class="material-symbols-outlined">close</span>
-            </a>
-          </header>
-          <div class="modal-body">
+      ${Modal({
+        id: "edit-app-modal",
+        title: t.header_edit_app,
+        closeAction: "closeEditAppModal()",
+        closeBtnId: "edit-close-btn",
+        children: html`
               <form method="POST" action="/admin/apps/update">
                 <div class="grid-vertical" style="display:flex; flex-direction:column; gap:1.5rem;">
                     <input type="hidden" name="id" value="" />
@@ -389,9 +388,8 @@ export const AppsPage = (props: Props) => {
                     </button>
                 </div>
               </form>
-          </div>
-        </article>
-      </dialog>
+        `
+      })}
 
       <script>
       ${scriptContent}

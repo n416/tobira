@@ -2,6 +2,7 @@ import { html, raw } from 'hono/html'
 import { Layout } from './Layout'
 import { dict } from '../../i18n'
 import { Group, App } from '../../types'
+import { Modal } from '../components/Modal'
 
 interface Props {
   t: typeof dict.en
@@ -338,7 +339,7 @@ export const GroupsPage = (props: Props) => {
         .action-btn:hover { background: #f1f5f9 !important; color: var(--text-main) !important; }
         .action-btn.delete:hover { background: #fef2f2 !important; color: #ef4444 !important; }
 
-        /* --- Tom Select Customization (Specific Fix) --- */
+        /* --- Tom Select Customization --- */
         .ts-control {
             background-color: #ffffff !important;
             border: 1px solid #cbd5e1 !important;
@@ -369,7 +370,7 @@ export const GroupsPage = (props: Props) => {
             display: inline-block !important;
             height: auto !important;
             line-height: inherit !important;
-            border-radius: 0 !important; /* FIXED: Remove radius to prevent clipping */
+            border-radius: 0 !important;
         }
 
         .ts-wrapper.focus .ts-control {
@@ -410,7 +411,13 @@ export const GroupsPage = (props: Props) => {
         }
         
         /* Modal tweaks */
-        dialog article { padding: 0 !important; overflow: hidden; border-radius: 20px !important; max-width: 600px; }
+        dialog article { 
+            padding: 0 !important; 
+            overflow: hidden; 
+            border-radius: 20px !important; 
+            max-width: 750px; /* UPDATED from 600px */
+            width: 100%;      /* ADDED */
+        }
         .modal-header { padding: 1.5rem 2rem; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; }
         .modal-body { padding: 2rem; max-height: 80vh; overflow-y: auto; }
         .modal-title { font-size: 1.25rem; font-weight: 700; color: #0f172a; }
@@ -436,15 +443,11 @@ export const GroupsPage = (props: Props) => {
         </button>
       </div>
 
-      <dialog id="new-group-modal">
-        <article>
-          <header class="modal-header">
-            <div class="modal-title">${t.header_new_group}</div>
-            <a href="#close" aria-label="Close" class="action-btn" onclick="this.closest('dialog').close()">
-                <span class="material-symbols-outlined">close</span>
-            </a>
-          </header>
-          <div class="modal-body">
+      ${Modal({
+        id: "new-group-modal",
+        title: t.header_new_group,
+        closeAction: "this.closest('dialog').close()",
+        children: html`
               <form method="POST" action="/admin/groups">
                 <div class="grid-vertical">
                     <label style="width:100%;">
@@ -456,9 +459,8 @@ export const GroupsPage = (props: Props) => {
                     </button>
                 </div>
               </form>
-          </div>
-        </article>
-      </dialog>
+        `
+      })}
 
       <hr />
 
@@ -482,16 +484,12 @@ export const GroupsPage = (props: Props) => {
         `})}
       </div>
 
-      <dialog id="group-modal">
-        <article>
-          <header class="modal-header">
-            <div class="modal-title">${t.modal_section_group}: <span id="modal-group-name" style="font-weight:400; color:#64748b; margin-left:0.5rem;"></span></div>
-            <a href="#close" id="modal-close-btn" aria-label="Close" class="action-btn" onclick="closeGroupModal()">
-                <span class="material-symbols-outlined">close</span>
-            </a>
-          </header>
-          
-          <div class="modal-body">
+      ${Modal({
+        id: "group-modal",
+        title: html`${t.modal_section_group}: <span id="modal-group-name" style="font-weight:400; color:#64748b; margin-left:0.5rem;"></span>`,
+        closeAction: "closeGroupModal()",
+        closeBtnId: "modal-close-btn",
+        children: html`
              <div id="grant-form-card">
                 <div style="margin-bottom: 1.5rem;">
                    <label class="form-label">${t.modal_label_app}</label>
@@ -535,9 +533,8 @@ export const GroupsPage = (props: Props) => {
              <h4 style="font-size:1.1rem; margin:2rem 0 1rem; font-weight:600; color:#334155;">${t.header_active_permissions}</h4>
              
              <div id="modal-g-perm-list"></div>
-          </div>
-        </article>
-      </dialog>
+        `
+      })}
 
       <div id="i18n-data" style="display:none;"
         data-msg-revoke="${t.confirm_revoke_permission}"

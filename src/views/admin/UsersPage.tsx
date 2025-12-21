@@ -441,7 +441,7 @@ export const UsersPage = (props: Props) => {
         .action-btn:hover { background: #f1f5f9 !important; color: var(--text-main) !important; }
         .action-btn.delete:hover { background: #fef2f2 !important; color: #ef4444 !important; }
 
-        /* --- Tom Select Customization (Specific Fix) --- */
+        /* --- Tom Select Customization --- */
         .ts-control {
             background-color: #ffffff !important;
             border: 1px solid #cbd5e1 !important;
@@ -472,7 +472,7 @@ export const UsersPage = (props: Props) => {
             display: inline-block !important;
             height: auto !important;
             line-height: inherit !important;
-            border-radius: 0 !important; /* FIXED: Remove radius to prevent clipping */
+            border-radius: 0 !important;
         }
 
         .ts-wrapper.focus .ts-control {
@@ -513,7 +513,13 @@ export const UsersPage = (props: Props) => {
         }
         
         /* Modal tweaks */
-        dialog article { padding: 0 !important; overflow: hidden; border-radius: 20px !important; max-width: 600px; }
+        dialog article { 
+            padding: 0 !important; 
+            overflow: hidden; 
+            border-radius: 20px !important; 
+            max-width: 750px; /* UPDATED from 600px */
+            width: 100%;      /* ADDED */
+        }
         .modal-header { padding: 1.5rem 2rem; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; }
         .modal-body { padding: 2rem; max-height: 80vh; overflow-y: auto; }
         .modal-title { font-size: 1.25rem; font-weight: 700; color: #0f172a; }
