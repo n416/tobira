@@ -11,14 +11,12 @@ export const dict = {
     title_forgot: 'Reset Password',
     title_change_password: 'Change Password',
 
-    // Nav
     nav_home: 'Home',
     nav_apps: 'Apps',
     nav_groups: 'Affiliations',
     nav_users: 'Users',
     nav_logs: 'Audit Logs',
 
-    // Login
     login_header: 'Login to',
     email: 'Email',
     password: 'Password',
@@ -26,7 +24,6 @@ export const dict = {
     forgot_password: 'Forgot Password?',
     back_to_login: 'Back to Login',
 
-    // Common
     logout: 'Logout',
     cancel: 'Cancel',
     save: 'Save',
@@ -35,7 +32,6 @@ export const dict = {
     status: 'Status',
     action: 'Action',
 
-    // User Dashboard
     dashboard_welcome: 'Welcome, {email}',
     dashboard_apps_header: 'Your Applications',
     btn_open_app: 'Launch',
@@ -44,7 +40,6 @@ export const dict = {
     msg_password_changed: 'Password changed successfully.',
     no_apps_assigned: 'No applications assigned. Please contact your administrator.',
 
-    // Apps
     section_apps: 'Applications',
     header_new_app: 'Register New App',
     header_edit_app: 'Edit App',
@@ -53,6 +48,8 @@ export const dict = {
     label_base_url: 'Base URL',
     placeholder_app_id: 'e.g. todo-app',
     placeholder_app_name: 'Display Name',
+    placeholder_select: 'Select...',
+    text_no_results: 'No results found',
     btn_add_app: 'Add App',
     btn_pause: 'Pause',
     btn_resume: 'Resume',
@@ -61,7 +58,6 @@ export const dict = {
     confirm_delete_app: 'Are you sure? All permissions associated with this app will be permanently deleted.',
     confirm_change_status: 'Change status for {name}?',
 
-    // Groups
     section_groups: 'Affiliation Management',
     header_new_group: 'New Affiliation',
     label_group_name: 'Affiliation Name',
@@ -70,7 +66,6 @@ export const dict = {
     no_groups: 'No affiliations defined.',
     confirm_delete_group: 'Are you sure you want to delete this affiliation? Users in this group will become "No Affiliation".',
 
-    // Users
     section_users: 'User Management',
     header_invite: 'Invite User',
     placeholder_invite_email: 'Email to invite',
@@ -82,12 +77,10 @@ export const dict = {
     confirm_revoke_permission: 'Are you sure you want to revoke this permission?',
     confirm_overwrite: 'The following permissions will be overwritten with term {start} - {end}:\n{list}\n\nAre you sure?',
 
-    // Alerts (Validation / Error)
     alert_select_app: 'Please select at least one application.',
     alert_update_fail: 'Update failed: {message}',
     alert_error: 'An error occurred: {message}',
 
-    // Bulk & Permissions
     btn_bulk_mode: 'Bulk Edit Mode',
     btn_exit_bulk: 'Exit Bulk Mode',
     btn_bulk_apply: 'Apply Changes',
@@ -107,7 +100,6 @@ export const dict = {
     source_group: 'Affiliation',
     msg_override: 'User settings override affiliation settings.',
 
-    // Modal Specific
     modal_th_app: 'Application',
     modal_th_source: 'Source',
     modal_th_valid: 'Validity Period',
@@ -121,14 +113,12 @@ export const dict = {
     btn_add_perm: 'Add Permission',
     btn_change: 'Change',
 
-    // Date Quick Buttons
     btn_date_today: 'Today',
     btn_date_start_month: '1st of Month',
     btn_term_1mo: '+1 Month',
     btn_term_1yr: '+1 Year',
     btn_term_forever: 'Indefinite',
 
-    // Logs
     section_logs: 'Audit Logs',
     th_time: 'Time',
     th_event: 'Event',
@@ -140,7 +130,6 @@ export const dict = {
     pager_next: 'Next →',
     pager_info: 'Page {current} of {total} ({count} logs)',
 
-    // Log Events
     event_APP_CREATED: 'App Created',
     event_APP_UPDATED: 'App Updated',
     event_APP_DELETED: 'App Deleted',
@@ -154,7 +143,6 @@ export const dict = {
     event_LOGIN: 'User Login',
     event_PASSWORD_CHANGE: 'Password Changed',
 
-    // Log Messages
     log_login: 'User logged in: {email}',
     log_app_created: 'App "{appName}" ({id}) created by {admin}',
     log_app_updated: 'App "{appName}" updated (Status: {status}) by {admin}',
@@ -169,7 +157,6 @@ export const dict = {
     log_bulk_update: 'Bulk update by {admin} ({count} users). Group: {group}, App: {app}',
     log_password_change: 'User {email} changed password.',
 
-    // Invite & Reset
     welcome: 'Welcome to Tobira',
     setup_desc: 'Setup password for',
     reset_desc: 'Reset password for',
@@ -178,7 +165,6 @@ export const dict = {
     btn_reset_password: 'Reset Password',
     btn_send_link: 'Send Reset Link',
 
-    // Errors/Messages
     invite_created: 'Invite Link Created',
     invite_copy_hint: 'Copy this link.',
     link_sent: 'If an account exists, a reset link has been sent.',
@@ -191,7 +177,6 @@ export const dict = {
     error_expired: 'Expired',
     msg_account_created: 'Account created. Please log in.',
 
-    // Stats
     stat_apps: 'Applications',
     stat_users: 'Users',
     stat_logs: 'Logs',
@@ -207,14 +192,12 @@ export const dict = {
 
     tobira_admin: 'Tobira 管理画面',
 
-    // Nav
     nav_home: 'ホーム',
     nav_apps: 'アプリ管理',
     nav_groups: '所属管理',
     nav_users: 'ユーザー管理',
     nav_logs: '監査ログ',
 
-    // Login
     login_header: 'ログイン:',
     email: 'メールアドレス',
     password: 'パスワード',
@@ -222,7 +205,6 @@ export const dict = {
     forgot_password: 'パスワードを忘れた場合',
     back_to_login: 'ログインに戻る',
 
-    // Common
     logout: 'ログアウト',
     cancel: 'キャンセル',
     save: '保存',
@@ -231,7 +213,6 @@ export const dict = {
     status: '状態',
     action: '操作',
 
-    // User Dashboard
     dashboard_welcome: 'ようこそ: {email}',
     dashboard_apps_header: '利用可能なアプリ',
     btn_open_app: 'アプリを開く',
@@ -240,7 +221,6 @@ export const dict = {
     msg_password_changed: 'パスワードを変更しました',
     no_apps_assigned: '利用可能なアプリがありません。管理者に問い合わせてください。',
 
-    // Apps
     section_apps: '連携アプリ一覧',
     header_new_app: '新規アプリ登録',
     header_edit_app: 'アプリ編集',
@@ -249,6 +229,8 @@ export const dict = {
     label_base_url: 'ベースURL',
     placeholder_app_id: '例: todo-app',
     placeholder_app_name: '表示名を入力',
+    placeholder_select: '選択してください...',
+    text_no_results: '該当なし',
     btn_add_app: 'アプリを追加',
     btn_pause: '停止する',
     btn_resume: '再開する',
@@ -257,7 +239,6 @@ export const dict = {
     confirm_delete_app: '本当に削除しますか？\nこのアプリに関連する全てのユーザー権限・所属権限も完全に削除されます。',
     confirm_change_status: '{name} のステータスを変更しますか？',
 
-    // Groups
     section_groups: '所属管理',
     header_new_group: '新規所属登録',
     label_group_name: '所属名',
@@ -266,7 +247,6 @@ export const dict = {
     no_groups: '所属が登録されていません',
     confirm_delete_group: '本当にこの所属を削除しますか？\nこの所属に設定されているユーザーは「所属なし」になります。',
 
-    // Users
     section_users: 'ユーザー管理',
     header_invite: '新規ユーザー招待',
     placeholder_invite_email: '招待するメールアドレス',
@@ -278,12 +258,10 @@ export const dict = {
     confirm_revoke_permission: '本当にこの権限を取り消しますか？',
     confirm_overwrite: '以下の権限が {start} ～ {end} で上書きされます。\n{list}\n\n本当に良いですか？',
 
-    // Alerts (Validation / Error)
     alert_select_app: 'アプリを少なくとも1つ選択してください',
     alert_update_fail: '更新に失敗しました: {message}',
     alert_error: 'エラーが発生しました: {message}',
 
-    // Bulk & Permissions
     btn_bulk_mode: '一括編集モード',
     btn_exit_bulk: '一括モード終了',
     btn_bulk_apply: '一括適用',
@@ -303,7 +281,6 @@ export const dict = {
     source_group: '所属(継承)',
     msg_override: '※ユーザー個別の設定がある場合、所属の設定より優先されます。',
 
-    // Modal Specific
     modal_th_app: 'アプリ名',
     modal_th_source: '適用元',
     modal_th_valid: '有効期間',
@@ -317,14 +294,12 @@ export const dict = {
     btn_add_perm: '権限を追加',
     btn_change: '変更',
 
-    // Date Quick Buttons
     btn_date_today: '今日',
     btn_date_start_month: '月初',
     btn_term_1mo: '+1ヶ月',
     btn_term_1yr: '+1年',
     btn_term_forever: '無期限',
 
-    // Logs
     section_logs: '監査ログ',
     th_time: '日時',
     th_event: 'イベント',
@@ -336,7 +311,6 @@ export const dict = {
     pager_next: '次へ →',
     pager_info: 'ページ {current} / {total} (全 {count} 件)',
 
-    // Log Events
     event_APP_CREATED: 'アプリ作成',
     event_APP_UPDATED: 'アプリ更新',
     event_APP_DELETED: 'アプリ削除',
@@ -350,7 +324,6 @@ export const dict = {
     event_LOGIN: 'ログイン',
     event_PASSWORD_CHANGE: 'パスワード変更',
 
-    // Log Messages
     log_login: 'ユーザーログイン: {email}',
     log_app_created: 'アプリ "{appName}" ({id}) 作成者: {admin}',
     log_app_updated: 'アプリ "{appName}" 更新 (状態: {status}) 実行: {admin}',
@@ -365,7 +338,6 @@ export const dict = {
     log_bulk_update: '一括更新 ({count}名) 実行: {admin} | 所属: {group}, アプリ: {app}',
     log_password_change: 'ユーザー {email} がパスワードを変更しました',
 
-    // Invite & Reset
     welcome: 'Tobira へようこそ',
     setup_desc: 'パスワードを設定します:',
     reset_desc: 'パスワードを再設定します:',
@@ -374,7 +346,6 @@ export const dict = {
     btn_reset_password: 'パスワード変更',
     btn_send_link: 'リセットリンクを送信',
 
-    // Errors/Messages
     invite_created: '招待リンクを作成しました',
     invite_copy_hint: 'リンクをコピーしてください。',
     link_sent: 'アカウントが存在する場合、リセットリンクを送信しました(コンソール確認)',
@@ -387,7 +358,6 @@ export const dict = {
     error_expired: '期限切れです',
     msg_account_created: 'アカウントを作成しました。ログインしてください。',
 
-    // Stats
     stat_apps: '登録アプリ数',
     stat_users: '登録ユーザー数',
     stat_logs: '総ログ数',

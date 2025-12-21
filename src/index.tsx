@@ -108,7 +108,6 @@ app.get('/login', async (c) => {
     // @ts-ignore
     const message = msgKey && t[msgKey] ? t[msgKey] : undefined
 
-    // SSO Check: ログイン済みならログイン画面をスキップ
     const user = await getUser(c)
     if (user) {
         if (redirectTo) return issueCodeAndRedirect(c, user.id, redirectTo)
@@ -146,10 +145,7 @@ app.post('/login', async (c) => {
 })
 
 async function issueCodeAndRedirect(c: any, userId: string, redirectTo: string) {
-    // Fix: Fetch all active apps and find one where redirectTo starts with base_url
     const { results } = await c.env.DB.prepare('SELECT * FROM apps WHERE status = ?').bind('active').all<App>()
-
-    // Find the matching app (Longest match preferred ideally, but simple find is okay for now)
     const app = (results as App[]).find(a => redirectTo.startsWith(a.base_url))
 
     if (!app) {
@@ -164,7 +160,6 @@ async function issueCodeAndRedirect(c: any, userId: string, redirectTo: string) 
     const expires = Math.floor(Date.now() / 1000) + 300
     await c.env.DB.prepare('INSERT INTO auth_codes (code, user_id, app_id, expires_at) VALUES (?, ?, ?, ?)').bind(code, userId, app.id, expires).run()
 
-    // Append code correctly (handle existing query params)
     const separator = redirectTo.includes('?') ? '&' : '?'
     return c.redirect(`${redirectTo}${separator}code=${code}`)
 }
@@ -200,26 +195,15 @@ app.post('/change-password', async (c) => {
 })
 
 // --- API Token ---
-// --- ユーザー情報取得 (tobira-kagi用) ---
 app.get('/api/me', async (c) => {
     const authHeader = c.req.header('Authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return c.json({ error: 'Unauthorized' }, 401)
-    }
+    if (!authHeader || !authHeader.startsWith('Bearer ')) return c.json({ error: 'Unauthorized' }, 401)
     const token = authHeader.split(' ')[1]
 
-    // トークンから有効なセッションを検索
-    const session = await c.env.DB.prepare(
-        'SELECT * FROM app_sessions WHERE token = ? AND expires_at > ?'
-    ).bind(token, Math.floor(Date.now() / 1000)).first()
-
+    const session = await c.env.DB.prepare('SELECT * FROM app_sessions WHERE token = ? AND expires_at > ?').bind(token, Math.floor(Date.now() / 1000)).first()
     if (!session) return c.json({ error: 'Invalid Token' }, 401)
 
-    // ユーザー情報を取得して返却
-    const user = await c.env.DB.prepare(
-        'SELECT id, email, group_id, created_at FROM users WHERE id = ?'
-    ).bind(session.user_id).first()
-
+    const user = await c.env.DB.prepare('SELECT id, email, group_id, created_at FROM users WHERE id = ?').bind(session.user_id).first()
     if (!user) return c.json({ error: 'User not found' }, 404)
 
     return c.json(user)
@@ -290,8 +274,9 @@ app.post('/admin/apps', async (c) => {
     const user = await getAdmin(c)
     if (!user) return c.redirect('/login')
     const body = await c.req.parseBody()
-    await c.env.DB.prepare('INSERT INTO apps (id, name, base_url, status) VALUES (?, ?, ?, ?)')
-        .bind(body['id'], body['name'], body['base_url'], 'active').run()
+    const now = Math.floor(Date.now() / 1000) // FIXED: Add created_at
+    await c.env.DB.prepare('INSERT INTO apps (id, name, base_url, status, created_at) VALUES (?, ?, ?, ?, ?)')
+        .bind(body['id'], body['name'], body['base_url'], 'active', now).run()
     const details = JSON.stringify({ key: 'log_app_created', params: { appName: body['name'], id: body['id'], admin: user.email } });
     await c.env.DB.prepare('INSERT INTO audit_logs (event_type, details) VALUES (?, ?)').bind('APP_CREATED', details).run()
     return c.redirect('/admin/apps')
@@ -352,27 +337,23 @@ app.post('/admin/groups', async (c) => {
     if (!user) return c.redirect('/login')
     const body = await c.req.parseBody()
     const id = crypto.randomUUID()
-    await c.env.DB.prepare('INSERT INTO groups (id, name) VALUES (?, ?)').bind(id, body['name']).run()
+    const now = Math.floor(Date.now() / 1000) // FIXED: Add created_at
+    await c.env.DB.prepare('INSERT INTO groups (id, name, created_at) VALUES (?, ?, ?)').bind(id, body['name'], now).run()
     return c.redirect('/admin/groups')
 })
 
-// ADDED: Delete Group
 app.post('/admin/groups/delete', async (c) => {
     const user = await getAdmin(c)
     if (!user) return c.redirect('/login')
     const body = await c.req.parseBody()
     const id = body['id'] as string
-
-    // Cascading logic: Remove permissions, update users to no group, delete group
     await c.env.DB.batch([
         c.env.DB.prepare('DELETE FROM group_permissions WHERE group_id = ?').bind(id),
         c.env.DB.prepare('UPDATE users SET group_id = NULL WHERE group_id = ?').bind(id),
         c.env.DB.prepare('DELETE FROM groups WHERE id = ?').bind(id)
     ])
-
     const details = JSON.stringify({ key: 'log_group_deleted', params: { id: id, admin: user.email } });
     await c.env.DB.prepare('INSERT INTO audit_logs (event_type, details) VALUES (?, ?)').bind('GROUP_DELETED', details).run()
-
     return c.redirect('/admin/groups')
 })
 
@@ -398,14 +379,11 @@ app.post('/admin/invite', async (c) => {
     return c.redirect(`/admin/users?invite_url=${encodeURIComponent(url.protocol + '//' + url.host + '/invite?token=' + token)}`)
 })
 
-// ADDED: Delete User
 app.post('/admin/users/delete', async (c) => {
     const user = await getAdmin(c)
     if (!user) return c.redirect('/login')
     const body = await c.req.parseBody()
     const id = body['id'] as string
-
-    // Cascading delete
     await c.env.DB.batch([
         c.env.DB.prepare('DELETE FROM permissions WHERE user_id = ?').bind(id),
         c.env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(id),
@@ -415,10 +393,8 @@ app.post('/admin/users/delete', async (c) => {
         c.env.DB.prepare('DELETE FROM invitations WHERE invited_by = ?').bind(id),
         c.env.DB.prepare('DELETE FROM users WHERE id = ?').bind(id)
     ])
-
     const details = JSON.stringify({ key: 'log_user_deleted', params: { id: id, admin: user.email } });
     await c.env.DB.prepare('INSERT INTO audit_logs (event_type, details) VALUES (?, ?)').bind('USER_DELETED', details).run()
-
     return c.redirect('/admin/users')
 })
 
@@ -448,11 +424,12 @@ app.post('/admin/users/bulk', async (c) => {
     if (appId) {
         const start = Math.floor(Date.now() / 1000)
         const end = start + 31536000
+        const now = Math.floor(Date.now() / 1000) // FIXED: Add created_at
         for (const uid of ids) {
             await c.env.DB.prepare(`
-                INSERT INTO permissions (user_id, app_id, valid_from, valid_to) VALUES (?, ?, ?, ?)
+                INSERT INTO permissions (user_id, app_id, valid_from, valid_to, created_at) VALUES (?, ?, ?, ?, ?)
                 ON CONFLICT(user_id, app_id) DO UPDATE SET valid_from=?, valid_to=?
-            `).bind(uid, appId, start, end, start, end).run()
+            `).bind(uid, appId, start, end, now, start, end).run()
         }
         const a = await c.env.DB.prepare('SELECT name FROM apps WHERE id = ?').bind(appId).first<{ name: string }>();
         aName = a ? a.name : appId;
@@ -531,12 +508,13 @@ app.post('/admin/api/user/permission/grant', async (c) => {
     const validFrom = body['valid_from'] || Math.floor(Date.now() / 1000)
     const targets = Array.isArray(appIds) ? appIds : [appId]
     const appNames = [];
+    const now = Math.floor(Date.now() / 1000) // FIXED: Add created_at
     for (const aid of targets) {
         if (!aid) continue
         await c.env.DB.prepare(`
-            INSERT INTO permissions (user_id, app_id, valid_from, valid_to) VALUES (?, ?, ?, ?)
+            INSERT INTO permissions (user_id, app_id, valid_from, valid_to, created_at) VALUES (?, ?, ?, ?, ?)
             ON CONFLICT(user_id, app_id) DO UPDATE SET valid_from=?, valid_to=?
-        `).bind(userId, aid, validFrom, validTo, validFrom, validTo).run()
+        `).bind(userId, aid, validFrom, validTo, now, validFrom, validTo).run()
         const a = await c.env.DB.prepare('SELECT name FROM apps WHERE id = ?').bind(aid).first<{ name: string }>();
         if (a) appNames.push(a.name);
     }
@@ -565,12 +543,13 @@ app.post('/admin/api/group/permission/grant', async (c) => {
     const validFrom = body['valid_from'] || Math.floor(Date.now() / 1000)
     const targets = Array.isArray(appIds) ? appIds : []
     const appNames = [];
+    const now = Math.floor(Date.now() / 1000) // FIXED: Add created_at
     for (const aid of targets) {
         if (!aid) continue
         await c.env.DB.prepare(`
-            INSERT INTO group_permissions (group_id, app_id, valid_from, valid_to) VALUES (?, ?, ?, ?)
+            INSERT INTO group_permissions (group_id, app_id, valid_from, valid_to, created_at) VALUES (?, ?, ?, ?, ?)
             ON CONFLICT(group_id, app_id) DO UPDATE SET valid_from=?, valid_to=?
-        `).bind(groupId, aid, validFrom, validTo, validFrom, validTo).run()
+        `).bind(groupId, aid, validFrom, validTo, now, validFrom, validTo).run()
         const a = await c.env.DB.prepare('SELECT name FROM apps WHERE id = ?').bind(aid).first<{ name: string }>();
         if (a) appNames.push(a.name);
     }
@@ -624,7 +603,6 @@ app.get('/admin/logs', async (c) => {
     />)
 })
 
-// --- Invite Routes (ADDED) ---
 app.get('/invite', async (c) => {
     const t = getLang(c)
     const token = c.req.query('token')
@@ -649,7 +627,6 @@ app.post('/invite', async (c) => {
 
     if (!invite) return c.html(<Invite t={t} error={t.error_invalid_invite} />)
 
-    // Create User
     const userId = crypto.randomUUID()
     const pwHash = await hashPassword(password)
     const now = Math.floor(Date.now() / 1000)
@@ -658,7 +635,6 @@ app.post('/invite', async (c) => {
         await c.env.DB.prepare('INSERT INTO users (id, email, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
             .bind(userId, invite.email, pwHash, now, now).run()
 
-        // Delete invitation
         await c.env.DB.prepare('DELETE FROM invitations WHERE id = ?').bind(token).run()
         return c.redirect('/login?msg=msg_account_created')
     } catch (e) {
@@ -666,7 +642,6 @@ app.post('/invite', async (c) => {
     }
 })
 
-// Forgot Password Routes
 app.get('/forgot-password', (c) => c.html(<ForgotPassword t={getLang(c)} />))
 app.post('/forgot-password', async (c) => {
     const t = getLang(c)
@@ -678,7 +653,6 @@ app.post('/forgot-password', async (c) => {
         const expires = Math.floor(Date.now() / 1000) + 3600
         await c.env.DB.prepare('INSERT INTO password_resets (token, user_id, expires_at) VALUES (?, ?, ?)').bind(token, user.id, expires).run()
 
-        // Bilingual Email
         const resetLink = `${new URL(c.req.url).origin}/reset-password?token=${token}`;
         const htmlBody = `
       <div style="font-family: sans-serif; color: #333; line-height: 1.6;">
@@ -724,7 +698,5 @@ app.post('/reset-password', async (c) => {
     await c.env.DB.prepare('DELETE FROM password_resets WHERE token = ?').bind(token).run()
     return c.redirect('/login')
 })
-
-
 
 export default app

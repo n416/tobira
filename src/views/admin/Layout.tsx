@@ -347,7 +347,7 @@ export const Layout = (props: LayoutProps) => {
             display: block;
             text-align: center;
             border-bottom: none;
-            margin-bottom: 2rem;
+            margin-bottom: 0; /* FIXED: Removed unnecessary margin */
             margin-top: 0;
             margin-left: 0 !important; 
             margin-right: 0 !important;
@@ -463,24 +463,23 @@ export const Layout = (props: LayoutProps) => {
                     </a>
                 `)}
             </nav>
-            <div style="margin-top: auto; padding-top: 2rem; border-top: 1px solid rgba(0,0,0,0.05);">
-                <a href="/" class="nav-item" style="color: var(--text-sub);">
-                    <span class="material-symbols-outlined" style="font-size:18px; margin-right:4px;">arrow_back</span>
-                    App Dashboard
-                </a>
-                <a href="/logout" class="nav-item" style="color: #e53e3e;">
-                    <span class="material-symbols-outlined" style="font-size:18px; margin-right:4px;">logout</span>
-                    ${t.logout}
-                </a>
+            <div style="margin-top: auto; padding: 1rem 0; border-top: 1px solid rgba(255,255,255,0.5);">
+                <div style="font-size: 0.85rem; color: var(--text-sub); margin-bottom: 0.5rem; padding: 0 0.5rem;">${props.userEmail}</div>
+                <div style="display:flex; gap: 0.5rem;">
+                    <a href="/" class="nav-item" style="flex:1; text-align:center; font-size:0.85rem; padding: 0.6rem;">${t.nav_home}</a>
+                    <a href="/logout" class="nav-item" style="flex:1; text-align:center; font-size:0.85rem; padding: 0.6rem; color:#ef4444;">${t.logout}</a>
+                </div>
             </div>
         </aside>
+        
         <main class="content">
             <div class="top-bar">
-                <span>${props.userEmail}</span>
+               <span class="material-symbols-outlined" style="margin-right: 6px; font-size: 18px; color: var(--text-sub);">admin_panel_settings</span> ${t.tobira_admin}
             </div>
             ${props.children}
         </main>
       </div>
+
       <script>
         function toggleSidebar() {
             document.querySelector('.sidebar').classList.toggle('open');
@@ -489,5 +488,5 @@ export const Layout = (props: LayoutProps) => {
       </script>
     </body>
     </html>
-  `
+    `
 }

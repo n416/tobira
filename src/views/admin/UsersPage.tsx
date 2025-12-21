@@ -25,7 +25,7 @@ export const UsersPage = (props: Props) => {
             try {
                 var appDataEl = document.getElementById('app-data');
                 if(appDataEl) ALL_APPS = JSON.parse(appDataEl.textContent);
-            } catch(e) { console.error("Failed to load app data", e); }
+            } catch(e) { console.error(e); }
             var tsControl = null;
             var currentExistingIds = []; 
             var currentUserPermissions = []; 
@@ -36,10 +36,13 @@ export const UsersPage = (props: Props) => {
                         plugins: ['remove_button'], 
                         create: false, 
                         maxItems: null, 
-                        placeholder: 'アプリを選択...',
+                        placeholder: i18n.placeholderSelect || 'Select...',
                         render: {
                             option: function(data, escape) { return '<div>' + escape(data.text) + '</div>'; },
-                            item: function(data, escape) { return '<div>' + escape(data.text) + '</div>'; }
+                            item: function(data, escape) { return '<div>' + escape(data.text) + '</div>'; },
+                            no_results: function(data, escape) {
+                                return '<div class="no-results">' + (i18n.textNoResults || 'No results found') + '</div>';
+                            }
                         }
                     });
                 }
@@ -73,7 +76,7 @@ export const UsersPage = (props: Props) => {
                 currentUserId = id;
                 if(modal) {
                     modal.showModal();
-                    setTimeout(function() { var closeBtn = document.getElementById('modal-close-btn'); if(closeBtn) closeBtn.focus(); }, 50);
+                    setTimeout(function() { var closeBtn = document.getElementById('modal-close-btn'); if(closeBtn) { closeBtn.focus(); closeBtn.blur(); closeBtn.focus(); } }, 50);
                 }
                 if (tsControl) tsControl.clear();
                 var validFrom = document.getElementById('perm-valid-from');
@@ -96,15 +99,27 @@ export const UsersPage = (props: Props) => {
                     .catch(function(e) { console.error(e); });
             };
             window.closeUserModal = function() { if(modal) modal.close(); window.resetGrantButton(); };
+            
             window.resetGrantButton = function() {
                 var btn = document.getElementById('btn-grant-perm');
                 if(btn) { btn.innerHTML = '<span class="material-symbols-outlined">add</span> <span>' + (i18n.btnGrant || 'Grant') + '</span>'; }
+                var card = document.getElementById('grant-form-card');
+                if(card) { card.classList.remove('blink-active'); }
                 if(tsControl) { tsControl.settings.maxItems = null; tsControl.refreshOptions(); }
             };
+
             window.highlightGrantForm = function() {
                 var btn = document.getElementById('btn-grant-perm');
                 if(btn) { btn.innerHTML = '<span class="material-symbols-outlined">edit</span> <span>' + (i18n.btnChange || '変更') + '</span>'; btn.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+                
+                var card = document.getElementById('grant-form-card');
+                if(card) { 
+                    card.classList.remove('blink-active'); 
+                    void card.offsetWidth;
+                    card.classList.add('blink-active'); 
+                }
             };
+            
             window.editPerm = function(appId, startTs, endTs) {
                 var filterCheck = document.getElementById('exclude-existing-check');
                 if(filterCheck && filterCheck.checked) { filterCheck.checked = false; refreshAppOptions(); }
@@ -132,17 +147,24 @@ export const UsersPage = (props: Props) => {
                     var item = document.createElement('div');
                     item.style.padding = '0.75rem 0';
                     item.style.borderBottom = '1px solid #f1f5f9';
+                    
+                    // Main Flex Container (Left: Info, Right: Buttons)
                     var row = document.createElement('div');
                     row.style.display = 'flex';
                     row.style.justifyContent = 'space-between';
-                    row.style.alignItems = 'center';
+                    row.style.alignItems = 'center'; // Center vertically
+                    
+                    // Left Column (Title + Meta)
                     var left = document.createElement('div');
                     left.style.display = 'flex';
                     left.style.flexDirection = 'column';
+                    left.style.gap = '0.2rem';
+                    
                     var title = document.createElement('div');
                     title.className = 'item-title';
                     title.innerText = p.app_name || 'Unknown';
                     left.appendChild(title);
+                    
                     var meta = document.createElement('div');
                     meta.className = 'item-sub';
                     var dateStrStart = new Date(p.valid_from * 1000).toLocaleDateString();
@@ -150,12 +172,21 @@ export const UsersPage = (props: Props) => {
                     var isForever = p.valid_to > 2000000000;
                     var dateHtml = dateStrStart + ' ～ ' + (isForever ? (i18n.termForever || 'Forever') : dateStrEnd);
                     var sourceIcon = p.source === 'group' ? 'domain' : 'person';
-                    var sourceColor = p.source === 'group' ? '#64748b' : 'var(--primary)';
-                    meta.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px; color:'+sourceColor+'">' + sourceIcon + '</span> ' + dateHtml;
+                    var sourceText = p.source === 'group' ? (i18n.sourceGroup || 'Group') : (i18n.sourceUser || 'User');
+                    var sourceColor = p.source === 'group' ? '#94a3b8' : 'var(--primary)';
+                    
+                    meta.innerHTML = '<div style="display:flex; align-items:center; gap:0.5rem;"><span class="material-symbols-outlined" style="font-size:18px; color:'+sourceColor+'">' + sourceIcon + '</span> ' + sourceText + ' : ' + dateHtml + '</div>';
                     if(p.is_override) meta.innerHTML += ' <span style="color:#d97706; margin-left:4px;">⚠</span>';
                     left.appendChild(meta);
+                    
                     row.appendChild(left);
+                    
+                    // Right Column (Actions)
                     var right = document.createElement('div');
+                    right.style.display = 'flex';
+                    right.style.gap = '0.5rem';
+                    right.style.alignItems = 'center';
+                    
                     if (p.source === 'user') {
                         var btnEdit = document.createElement('button');
                         btnEdit.className = 'action-btn';
@@ -190,7 +221,6 @@ export const UsersPage = (props: Props) => {
                 if (tsControl) { appIds = tsControl.getValue(); if (!Array.isArray(appIds)) appIds = [appIds]; } 
                 else { var appSelect = document.getElementById('perm-app-id'); if (appSelect.value) appIds = [appSelect.value]; }
                 appIds = appIds.filter(function(id) { return id !== ''; });
-                // Use i18n for alert
                 if(appIds.length === 0) { alert(i18n.alertSelectApp || 'Select at least one App'); return; }
                 var warningMessages = [];
                 appIds.forEach(function(id) {
@@ -215,7 +245,6 @@ export const UsersPage = (props: Props) => {
                 .then(function() { window.openUserModal(currentUserId); window.resetGrantButton(); })
                 .catch(function(e) { 
                     console.error(e); 
-                    // Use i18n for alert
                     var tmpl = i18n.alertError || 'Error: {message}';
                     alert(tmpl.replace('{message}', e)); 
                 });
@@ -231,10 +260,9 @@ export const UsersPage = (props: Props) => {
                 .then(function(r) { if (!r.ok) { return r.json().catch(function(){ return {}; }).then(function(err) { throw new Error(err.error || 'Server returned ' + r.status); }); } return r.json(); })
                 .then(function() { window.closeUserModal(); window.location.reload(); })
                 .catch(function(e) { 
-                    // Use i18n for alert
                     var tmpl = i18n.alertUpdateFail || 'Update failed: {message}';
                     alert(tmpl.replace('{message}', e.message)); 
-                    console.error(e); 
+                    console.error(e);
                 });
             };
             var btn = document.getElementById('toggleBulkMode');
@@ -266,10 +294,20 @@ export const UsersPage = (props: Props) => {
         /* --- Base & Reset --- */
         .material-symbols-outlined { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; }
         
+        /* --- Animation: Border Blink --- */
+        @keyframes border-blink {
+            0% { border-color: #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+            50% { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.2); }
+            100% { border-color: #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+        }
+        .blink-active {
+            animation: border-blink 1s ease-in-out 3;
+        }
+
         /* --- Card / List Layout --- */
         .list-grid { display: flex; flex-direction: column; gap: 1rem; }
         
-        /* List Item Card (Reverted to clean white style) */
+        /* List Item Card */
         .list-card {
             background: #ffffff;
             border: 1px solid #e2e8f0;
@@ -292,7 +330,7 @@ export const UsersPage = (props: Props) => {
         .item-title { font-weight: 600; font-size: 1rem; color: #1e293b; margin-bottom: 0.2rem; }
         .item-sub { font-size: 0.85rem; color: #64748b; display: flex; align-items: center; gap: 0.4rem; }
         
-        /* --- Permission Grant Card (The "Right" Image Design) --- */
+        /* --- Permission Grant Card --- */
         #grant-form-card {
             background: #ffffff;
             padding: 2rem;
@@ -300,6 +338,7 @@ export const UsersPage = (props: Props) => {
             border: 1px solid #e2e8f0;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
             margin-bottom: 2rem;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
         }
         
         .form-label {
@@ -328,35 +367,39 @@ export const UsersPage = (props: Props) => {
             box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
         }
 
-        /* Quick Buttons Container */
+        /* Quick Buttons */
         .quick-btn-group {
             display: grid;
-            grid-template-columns: repeat(4, 1fr); /* 4 buttons in a row */
+            grid-template-columns: repeat(4, 1fr);
             gap: 0.75rem;
             margin-top: 0.75rem;
         }
-        
-        /* Quick Button Style (Pill/Soft) */
         .quick-btn {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            color: #64748b;
-            padding: 0.5rem;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-align: center;
-            width: 100%;
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            color: #64748b !important;
+            padding: 0.6rem 0.5rem !important;
+            border-radius: 8px !important;
+            font-size: 0.85rem !important;
+            font-weight: 500 !important;
+            cursor: pointer !important;
+            transition: all 0.2s !important;
+            text-align: center !important;
+            width: 100% !important;
+            box-shadow: none !important;
+            line-height: 1 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
         }
         .quick-btn:hover {
-            border-color: var(--primary);
-            color: var(--primary);
-            background: #eff6ff;
+            border-color: var(--primary) !important;
+            color: var(--primary) !important;
+            background: #eff6ff !important;
+            box-shadow: none !important;
         }
 
-        /* Grant Button (Gradient) */
+        /* Grant Button */
         #btn-grant-perm {
             width: 100%;
             margin-top: 2rem;
@@ -379,25 +422,96 @@ export const UsersPage = (props: Props) => {
             transform: translateY(-2px);
             box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
         }
+        
+        /* Action Buttons */
+        .action-btn { 
+            background: transparent !important; 
+            border: none !important; 
+            color: #94a3b8 !important; 
+            cursor: pointer !important; 
+            padding: 8px !important; 
+            border-radius: 50% !important; 
+            transition: all 0.2s !important;
+            box-shadow: none !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 36px !important;
+            height: 36px !important;
+            flex-shrink: 0 !important;
+        }
+        .action-btn:hover { background: #f1f5f9 !important; color: var(--text-main) !important; }
+        .action-btn.delete:hover { background: #fef2f2 !important; color: #ef4444 !important; }
 
-        /* --- Tom Select Customization (Matching "Input" style) --- */
+        /* --- Tom Select Customization (Specific Fix) --- */
         .ts-control {
             background-color: #ffffff !important;
             border: 1px solid #cbd5e1 !important;
             border-radius: 8px !important;
-            padding: 10px 12px !important;
+            padding: 6px 10px !important;
             box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
-            font-size: 1rem;
+            font-size: 1rem !important;
+            min-height: auto !important;
+            display: flex !important;
+            flex-wrap: wrap !important;
+            align-items: center !important;
+            gap: 6px !important;
         }
+
+        /* Override Global Input Border AND Radius */
+        .ts-wrapper .ts-control > input,
+        .ts-wrapper.multi .ts-control > input,
+        .ts-wrapper.single .ts-control > input,
+        div.ts-control > input {
+            border: none !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: auto !important;
+            flex: 1 1 auto !important;
+            min-width: 4rem !important;
+            display: inline-block !important;
+            height: auto !important;
+            line-height: inherit !important;
+            border-radius: 0 !important; /* FIXED: Remove radius to prevent clipping */
+        }
+
         .ts-wrapper.focus .ts-control {
             border-color: var(--primary) !important;
             box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
         }
+
+        .ts-wrapper.multi .ts-control > div.item {
+            background: #eff6ff !important;
+            color: #4f46e5 !important;
+            border: 1px solid #c7d2fe !important;
+            border-radius: 6px !important;
+            padding: 4px 10px !important;
+            margin: 0 !important;
+            font-size: 0.95rem !important;
+            font-weight: 500 !important;
+            display: flex !important;
+            align-items: center !important;
+            line-height: 1.2 !important;
+        }
+
         .ts-dropdown {
             border-radius: 8px !important;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
             border: 1px solid #e2e8f0 !important;
-            z-index: 20000 !important; /* Above modal */
+            z-index: 20000 !important;
+            font-size: 1rem !important;
+        }
+        .ts-dropdown .option {
+            padding: 10px 16px !important;
+            cursor: pointer !important;
+            color: #334155 !important;
+        }
+        .ts-dropdown .option.active, .ts-dropdown .active {
+            background-color: #f1f5f9 !important;
+            color: var(--primary) !important;
+            font-weight: 600 !important;
         }
         
         /* Modal tweaks */
@@ -405,10 +519,6 @@ export const UsersPage = (props: Props) => {
         .modal-header { padding: 1.5rem 2rem; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; }
         .modal-body { padding: 2rem; max-height: 80vh; overflow-y: auto; }
         .modal-title { font-size: 1.25rem; font-weight: 700; color: #0f172a; }
-        
-        .action-btn { background:transparent; border:none; color:#94a3b8; cursor:pointer; padding:6px; border-radius:50%; transition:all 0.2s; }
-        .action-btn:hover { background:#f1f5f9; color:var(--text-main); }
-        .action-btn.delete:hover { background:#fef2f2; color:#ef4444; }
         
         .checkbox-label {
             display: flex;
@@ -556,7 +666,7 @@ export const UsersPage = (props: Props) => {
                         <option value="">${t.no_affiliation}</option>
                         ${props.groups.map(g => html`<option value="${g.id}">${g.name}</option>`)}
                     </select>
-                    <button type="button" class="outline" onclick="updateUserGroup()" style="width: auto; padding:0 1.5rem; background:white; border:1px solid #cbd5e1; color:#475569;">
+                    <button type="button" class="outline" onclick="updateUserGroup()" style="width: auto; padding:0 1.5rem; background:white; border:1px solid #cbd5e1; color:#475569; white-space: nowrap; flex-shrink: 0;">
                         ${t.save}
                     </button> 
                 </div>
@@ -568,7 +678,10 @@ export const UsersPage = (props: Props) => {
               <div id="grant-form-card">
                 <div style="margin-bottom: 1.5rem;">
                    <label class="form-label">${t.label_app}</label>
-                   <select id="perm-app-id" multiple autocomplete="off" placeholder="アプリを選択..."></select>
+                   <select id="perm-app-id" multiple autocomplete="off" placeholder="${t.placeholder_select}" style="width:100%; margin-bottom:0;">
+                      <option value="">Select App...</option>
+                      ${props.apps.map(a => html`<option value="${a.id}">${a.name}</option>`)}
+                   </select>
                    <label class="checkbox-label">
                        <input type="checkbox" id="exclude-existing-check" />
                        登録されているものは含まない
@@ -628,6 +741,8 @@ export const UsersPage = (props: Props) => {
         data-alert-select-app="${t.alert_select_app}"
         data-alert-update-fail="${t.alert_update_fail}"
         data-alert-error="${t.alert_error}"
+        data-placeholder-select="${t.placeholder_select}" 
+        data-text-no-results="${t.text_no_results}"
       ></div>
       
       <script type="application/json" id="app-data">${raw(allAppsJson)}</script>
