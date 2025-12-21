@@ -19,28 +19,22 @@ export const UsersPage = (props: Props) => {
     // アプリ一覧をJSONとして準備
     const allAppsJson = JSON.stringify(props.apps.map(a => ({value: a.id, text: a.name})));
 
-    // JSコードを文字列として定義（改行やエスケープの問題を回避するため、rawで埋め込む）
-    // NOTE: Python script will inject js code here
     const scriptContent = raw(`
 
         (function() {
-            // Safe Constant Loading
-            const i18nEl = document.getElementById('i18n-data');
-            const i18n = i18nEl ? i18nEl.dataset : {};
+            var i18nEl = document.getElementById('i18n-data');
+            var i18n = i18nEl ? i18nEl.dataset : {};
             
-            // Load App Data safely
-            let ALL_APPS = [];
+            var ALL_APPS = [];
             try {
-                const appDataEl = document.getElementById('app-data');
+                var appDataEl = document.getElementById('app-data');
                 if(appDataEl) ALL_APPS = JSON.parse(appDataEl.textContent);
-            } catch(e) { console.error("Failed to load app data", e); }
+            } catch(e) { console.error(e); }
             
-            // Tom Select Instance & State
-            let tsControl = null;
-            let currentExistingIds = []; 
-            let currentUserPermissions = []; 
+            var tsControl = null;
+            var currentExistingIds = []; 
+            var currentUserPermissions = []; 
 
-            // Initialize Tom Select
             document.addEventListener('DOMContentLoaded', function() {
                 if (typeof TomSelect !== 'undefined') {
                     tsControl = new TomSelect('#perm-app-id', {
@@ -54,7 +48,7 @@ export const UsersPage = (props: Props) => {
                     });
                 }
                 
-                const filterCheck = document.getElementById('exclude-existing-check');
+                var filterCheck = document.getElementById('exclude-existing-check');
                 if (filterCheck) {
                     filterCheck.addEventListener('change', refreshAppOptions);
                 }
@@ -62,66 +56,65 @@ export const UsersPage = (props: Props) => {
             
             function refreshAppOptions() {
                 if (!tsControl) return;
-                
-                const exclude = document.getElementById('exclude-existing-check').checked;
-                
+                var exclude = document.getElementById('exclude-existing-check').checked;
                 tsControl.clearOptions();
-                
-                let optionsToShow = ALL_APPS;
+                var optionsToShow = ALL_APPS;
                 if (exclude) {
                     optionsToShow = ALL_APPS.filter(function(app) {
                         return !currentExistingIds.includes(app.value);
                     });
                 }
-                
                 tsControl.addOption(optionsToShow);
                 tsControl.refreshOptions(false); 
             }
             
             window.deleteUser = function(id) {
                 if(!confirm(i18n.deleteConfirm)) return;
-                const form = document.getElementById('delete-user-form');
+                var form = document.getElementById('delete-user-form');
                 if (!form) return;
-                const input = form.querySelector('input[name="id"]');
+                var input = form.querySelector('input[name="id"]');
                 input.value = id;
                 form.submit();
             };
 
-            const modal = document.getElementById('user-modal');
-            let currentUserId = '';
+            var modal = document.getElementById('user-modal');
+            var currentUserId = '';
 
             window.openUserModal = function(id) {
-                console.log("openUserModal", id);
                 currentUserId = id;
-                if(modal) modal.showModal();
+                if(modal) {
+                    modal.showModal();
+                    var closeBtn = document.getElementById('modal-close-btn');
+                    if(closeBtn) closeBtn.focus();
+                }
                 
                 if (tsControl) tsControl.clear();
                 
-                const validFrom = document.getElementById('perm-valid-from');
+                var validFrom = document.getElementById('perm-valid-from');
                 if(validFrom) validFrom.value = new Date().toISOString().split('T')[0];
                 
-                const validTo = document.getElementById('perm-valid-to');
+                var validTo = document.getElementById('perm-valid-to');
                 if(validTo) validTo.value = '';
                 
                 window.resetGrantButton();
 
                 fetch('/admin/api/user-details/' + id + '?t=' + new Date().getTime())
-                    .then(r => r.json())
-                    .then(data => {
-                        const emailEl = document.getElementById('modal-user-email');
+                    .then(function(r){ return r.json(); })
+                    .then(function(data){
+                        var emailEl = document.getElementById('modal-user-email');
                         if(emailEl) emailEl.innerText = data.email;
                         
-                        const groupSel = document.getElementById('modal-group-select');
+                        var groupSel = document.getElementById('modal-group-select');
                         if(groupSel) groupSel.value = data.group_id || '';
                         
                         window.renderPerms(data.permissions);
                         
                         currentUserPermissions = data.permissions;
-                        currentExistingIds = data.permissions.map(p => p.app_id);
+                        currentExistingIds = data.permissions.map(function(p){ return p.app_id; });
                         
                         refreshAppOptions();
                     })
-                    .catch(e => console.error(e));
+                    .catch(function(e){ console.error(e); });
             };
             
             window.closeUserModal = function() { 
@@ -130,15 +123,14 @@ export const UsersPage = (props: Props) => {
             };
             
             window.resetGrantButton = function() {
-                const btn = document.getElementById('btn-grant-perm');
+                var btn = document.getElementById('btn-grant-perm');
                 if(btn) {
                     btn.innerHTML = '<span class="material-symbols-outlined">add</span> <span>' + (i18n.btnGrant || 'Grant') + '</span>';
                 }
-                const card = document.getElementById('grant-form-card');
+                var card = document.getElementById('grant-form-card');
                 if(card) {
                     card.classList.remove('blink-active');
                 }
-                
                 if(tsControl) {
                     tsControl.settings.maxItems = null;
                     tsControl.refreshOptions();
@@ -146,12 +138,12 @@ export const UsersPage = (props: Props) => {
             };
 
             window.highlightGrantForm = function() {
-                const btn = document.getElementById('btn-grant-perm');
+                var btn = document.getElementById('btn-grant-perm');
                 if(btn) {
                      btn.innerHTML = '<span class="material-symbols-outlined">edit</span> <span>' + (i18n.btnChange || '変更') + '</span>';
                      btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
-                const card = document.getElementById('grant-form-card');
+                var card = document.getElementById('grant-form-card');
                 if(card) {
                     card.classList.remove('blink-active');
                     void card.offsetWidth; 
@@ -160,7 +152,7 @@ export const UsersPage = (props: Props) => {
             };
 
             window.editPerm = function(appId, startTs, endTs) {
-                const filterCheck = document.getElementById('exclude-existing-check');
+                var filterCheck = document.getElementById('exclude-existing-check');
                 if(filterCheck && filterCheck.checked) {
                     filterCheck.checked = false;
                     refreshAppOptions();
@@ -170,12 +162,12 @@ export const UsersPage = (props: Props) => {
                     tsControl.setValue([appId]);
                 }
                 
-                const validFrom = document.getElementById('perm-valid-from');
+                var validFrom = document.getElementById('perm-valid-from');
                 if(validFrom) validFrom.value = new Date(startTs * 1000).toISOString().split('T')[0];
                 
-                const validTo = document.getElementById('perm-valid-to');
+                var validTo = document.getElementById('perm-valid-to');
                 if(validTo) {
-                    const isForever = endTs > 2000000000;
+                    var isForever = endTs > 2000000000;
                     validTo.value = isForever ? '' : new Date(endTs * 1000).toISOString().split('T')[0];
                 }
                 
@@ -183,12 +175,12 @@ export const UsersPage = (props: Props) => {
             };
 
             window.renderPerms = function(list) {
-                const container = document.getElementById('modal-perm-list');
+                var container = document.getElementById('modal-perm-list');
                 if(!container) return;
                 container.innerHTML = '';
 
                 if (!list || list.length === 0) {
-                    const empty = document.createElement('div');
+                    var empty = document.createElement('div');
                     empty.style.textAlign = 'center';
                     empty.style.padding = '2rem';
                     empty.style.color = 'var(--text-sub)';
@@ -197,43 +189,43 @@ export const UsersPage = (props: Props) => {
                     return;
                 }
 
-                list.forEach(p => {
-                    const item = document.createElement('div');
+                list.forEach(function(p) {
+                    var item = document.createElement('div');
                     item.style.padding = '1rem 0';
                     item.style.borderBottom = '1px solid rgba(0,0,0,0.1)';
                     item.style.display = 'flex';
                     item.style.flexDirection = 'column';
                     item.style.gap = '0.5rem';
 
-                    const title = document.createElement('div');
+                    var title = document.createElement('div');
                     title.style.fontWeight = 'bold';
                     title.style.fontSize = '1.05rem';
                     title.textContent = p.app_name || 'Unknown';
                     item.appendChild(title);
 
-                    const infoRow = document.createElement('div');
+                    var infoRow = document.createElement('div');
                     infoRow.style.display = 'flex';
                     infoRow.style.justifyContent = 'space-between';
                     infoRow.style.alignItems = 'flex-start';
                     infoRow.style.gap = '1rem';
                     infoRow.style.flexWrap = 'wrap';
 
-                    const meta = document.createElement('div');
+                    var meta = document.createElement('div');
                     meta.style.fontSize = '0.9rem';
                     meta.style.color = 'var(--text-sub)';
                     meta.style.display = 'flex';
                     meta.style.flexDirection = 'column';
                     meta.style.gap = '0.2rem';
                     
-                    const detailsLine = document.createElement('div');
+                    var detailsLine = document.createElement('div');
                     detailsLine.style.display = 'flex';
                     detailsLine.style.alignItems = 'center';
                     detailsLine.style.gap = '0.5rem';
                     detailsLine.style.flexWrap = 'wrap';
 
-                    let sourceHtml = '';
-                    let sourceIcon = '';
-                    let sourceText = '';
+                    var sourceHtml = '';
+                    var sourceIcon = '';
+                    var sourceText = '';
                     if (p.source === 'group') {
                         sourceIcon = 'domain';
                         sourceText = i18n.sourceGroup || 'Group';
@@ -244,16 +236,16 @@ export const UsersPage = (props: Props) => {
                         sourceHtml = '<span class="material-symbols-outlined" style="font-size:18px; vertical-align:text-bottom; color:var(--primary);">' + sourceIcon + '</span> <span style="color:var(--primary);">' + sourceText + '</span>';
                     }
                     
-                    const dateStrStart = new Date(p.valid_from * 1000).toLocaleDateString();
-                    const dateStrEnd = new Date(p.valid_to * 1000).toLocaleDateString();
-                    const isForever = p.valid_to > 2000000000;
-                    const dateHtml = ': ' + dateStrStart + ' ～ ' + (isForever ? (i18n.termForever || 'Forever') : dateStrEnd);
+                    var dateStrStart = new Date(p.valid_from * 1000).toLocaleDateString();
+                    var dateStrEnd = new Date(p.valid_to * 1000).toLocaleDateString();
+                    var isForever = p.valid_to > 2000000000;
+                    var dateHtml = ': ' + dateStrStart + ' ～ ' + (isForever ? (i18n.termForever || 'Forever') : dateStrEnd);
 
                     detailsLine.innerHTML = sourceHtml + dateHtml;
                     meta.appendChild(detailsLine);
 
                     if (p.is_override) {
-                        const warn = document.createElement('small');
+                        var warn = document.createElement('small');
                         warn.style.color = '#d97706';
                         warn.textContent = '⚠ ' + (i18n.msgOverride || '');
                         meta.appendChild(warn);
@@ -261,13 +253,13 @@ export const UsersPage = (props: Props) => {
                     
                     infoRow.appendChild(meta);
 
-                    const actions = document.createElement('div');
+                    var actions = document.createElement('div');
                     actions.style.display = 'flex';
                     actions.style.gap = '0.5rem';
                     actions.style.marginLeft = 'auto';
 
                     if (p.source === 'user') {
-                        const btnEdit = document.createElement('button');
+                        var btnEdit = document.createElement('button');
                         btnEdit.type = 'button';
                         btnEdit.className = 'outline secondary';
                         btnEdit.style.cssText = 'border:none; background:transparent; padding:0.4rem; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; color:#0ea5e9; width:36px; height:36px; cursor:pointer;';
@@ -276,7 +268,7 @@ export const UsersPage = (props: Props) => {
                         btnEdit.onclick = function() { window.editPerm(p.app_id, p.valid_from, p.valid_to); };
                         actions.appendChild(btnEdit);
 
-                        const btnRevoke = document.createElement('button');
+                        var btnRevoke = document.createElement('button');
                         btnRevoke.type = 'button';
                         btnRevoke.className = 'outline secondary';
                         btnRevoke.style.cssText = 'border:none; background:transparent; padding:0.4rem; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; color:#ef4444; width:36px; height:36px; cursor:pointer;';
@@ -285,7 +277,7 @@ export const UsersPage = (props: Props) => {
                         btnRevoke.onclick = function() { window.revokePerm(p.id); };
                         actions.appendChild(btnRevoke);
                     } else {
-                        const spanLock = document.createElement('span');
+                        var spanLock = document.createElement('span');
                         spanLock.style.color = '#cbd5e1';
                         spanLock.style.padding = '0.5rem';
                         spanLock.innerHTML = '<span class="material-symbols-outlined" style="font-size:20px;">lock</span>';
@@ -300,10 +292,10 @@ export const UsersPage = (props: Props) => {
             };
             
             window.calcDate = function(targetId, offset, unit) {
-                const d = new Date();
+                var d = new Date();
                 
                 if (unit === 'forever') {
-                     const el = document.getElementById(targetId);
+                     var el = document.getElementById(targetId);
                      if(el) el.value = '';
                      return;
                 }
@@ -316,22 +308,22 @@ export const UsersPage = (props: Props) => {
                     d.setDate(d.getDate() + offset);
                 }
                 
-                const el = document.getElementById(targetId);
+                var el = document.getElementById(targetId);
                 if(el) el.value = d.toISOString().split('T')[0];
             };
 
             window.grantPermission = function() {
-                const dateVal = document.getElementById('perm-valid-to').value;
-                const startVal = document.getElementById('perm-valid-from').value;
-                const dateStrStart = new Date(startVal).toLocaleDateString();
-                const dateStrEnd = dateVal ? new Date(dateVal).toLocaleDateString() : (i18n.termForever || 'Forever');
+                var dateVal = document.getElementById('perm-valid-to').value;
+                var startVal = document.getElementById('perm-valid-from').value;
+                var dateStrStart = new Date(startVal).toLocaleDateString();
+                var dateStrEnd = dateVal ? new Date(dateVal).toLocaleDateString() : (i18n.termForever || 'Forever');
                 
-                let appIds = [];
+                var appIds = [];
                 if (tsControl) {
                     appIds = tsControl.getValue();
                     if (!Array.isArray(appIds)) appIds = [appIds];
                 } else {
-                    const appSelect = document.getElementById('perm-app-id');
+                    var appSelect = document.getElementById('perm-app-id');
                     if (appSelect.value) appIds = [appSelect.value];
                 }
                 
@@ -339,26 +331,25 @@ export const UsersPage = (props: Props) => {
 
                 if(appIds.length === 0) { alert('Select at least one App'); return; }
 
-                // Check for overwrite warning
-                const warningMessages = [];
+                var warningMessages = [];
                 appIds.forEach(function(id) {
-                    const existing = currentUserPermissions.find(function(p) { return p.app_id === id && p.source === 'user'; });
+                    var existing = currentUserPermissions.find(function(p) { return p.app_id === id && p.source === 'user'; });
                     if (existing) {
-                        const exStart = new Date(existing.valid_from * 1000).toLocaleDateString();
-                        const isForever = existing.valid_to > 2000000000;
-                        const exEnd = isForever ? (i18n.termForever || 'Forever') : new Date(existing.valid_to * 1000).toLocaleDateString();
+                        var exStart = new Date(existing.valid_from * 1000).toLocaleDateString();
+                        var isForever = existing.valid_to > 2000000000;
+                        var exEnd = isForever ? (i18n.termForever || 'Forever') : new Date(existing.valid_to * 1000).toLocaleDateString();
                         
                         warningMessages.push('・' + existing.app_name + ' (' + exStart + ' ～ ' + exEnd + ')');
                     }
                 });
 
                 if (warningMessages.length > 0) {
-                    const msg = warningMessages.join('\\n') + '\\n\\nの権限が ' + dateStrStart + ' ～ ' + dateStrEnd + ' で上書きされます。\\n本当に良いですか？';
+                    var msg = warningMessages.join('\\n') + '\\n\\nの権限が ' + dateStrStart + ' ～ ' + dateStrEnd + ' で上書きされます。\\n本当に良いですか？';
                     if (!confirm(msg)) return;
                 }
 
-                const validTo = dateVal ? Math.floor(new Date(dateVal).getTime()/1000) : Math.floor(Date.now()/1000) + 315360000;
-                const validFrom = startVal ? Math.floor(new Date(startVal).getTime()/1000) : Math.floor(Date.now()/1000);
+                var validTo = dateVal ? Math.floor(new Date(dateVal).getTime()/1000) : Math.floor(Date.now()/1000) + 315360000;
+                var validFrom = startVal ? Math.floor(new Date(startVal).getTime()/1000) : Math.floor(Date.now()/1000);
 
                 fetch('/admin/api/user/permission/grant', {
                     method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({
@@ -383,7 +374,7 @@ export const UsersPage = (props: Props) => {
             };
             
             window.updateUserGroup = function() {
-                const gid = document.getElementById('modal-group-select').value;
+                var gid = document.getElementById('modal-group-select').value;
                 
                 fetch('/admin/api/user/group', {
                     method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({user_id: currentUserId, group_id: gid})
@@ -406,16 +397,16 @@ export const UsersPage = (props: Props) => {
                 });
             };
 
-            const btn = document.getElementById('toggleBulkMode');
-            const controls = document.getElementById('bulkControls');
-            let bulkMode = false;
+            var btn = document.getElementById('toggleBulkMode');
+            var controls = document.getElementById('bulkControls');
+            var bulkMode = false;
             
             if(btn) {
                 btn.addEventListener('click', function(e) {
                     e.preventDefault();
                     bulkMode = !bulkMode;
-                    const iconName = bulkMode ? 'close' : 'bolt';
-                    const text = bulkMode ? (i18n.btnExit || 'Exit') : (i18n.btnEnter || 'Bulk Mode');
+                    var iconName = bulkMode ? 'close' : 'bolt';
+                    var text = bulkMode ? (i18n.btnExit || 'Exit') : (i18n.btnEnter || 'Bulk Mode');
                     btn.innerHTML = '<span class="material-symbols-outlined">' + iconName + '</span> ' + text;
                     btn.className = bulkMode ? '' : 'btn-glass';
                     if(controls) controls.style.display = bulkMode ? 'block' : 'none';
@@ -664,7 +655,7 @@ export const UsersPage = (props: Props) => {
         <article style="max-width: 600px !important; width: 100%; margin-top: 5vh;">
           <header>
             <div class="modal-title">${t.header_user_details} <span id="modal-user-email"></span></div>
-            <a href="#close" aria-label="Close" class="close" onclick="closeUserModal()">
+            <a href="#close" id="modal-close-btn" aria-label="Close" class="close" onclick="closeUserModal()" role="button" tabindex="0">
                 <span class="material-symbols-outlined">close</span>
             </a>
           </header>

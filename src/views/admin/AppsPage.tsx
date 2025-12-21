@@ -20,8 +20,8 @@ export const AppsPage = (props: Props) => {
         <hgroup style="margin-bottom: 0;">
           <h2 style="margin-bottom: 0;">${t.section_apps}</h2>
         </hgroup>
-        <button onclick="document.getElementById('new-app-modal').showModal()" style="width: auto; margin-bottom: 0;">
-            ${t.btn_add_app}
+        <button onclick="document.getElementById('new-app-modal').showModal()" style="width: auto; margin-bottom: 0; display: inline-flex; align-items: center; gap: 0.5rem;">
+            <span class="material-symbols-outlined">add</span> ${t.btn_add_app}
         </button>
       </div>
 
@@ -29,8 +29,8 @@ export const AppsPage = (props: Props) => {
         <article>
           <header>
             <div class="modal-title">${t.header_new_app}</div>
-            <a href="#close" aria-label="Close" class="close" onclick="this.closest('dialog').close()">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            <a href="#close" aria-label="Close" class="close" onclick="this.closest('dialog').close()" role="button">
+                <span class="material-symbols-outlined">close</span>
             </a>
           </header>
           <form method="POST" action="/admin/apps">
@@ -51,73 +51,76 @@ export const AppsPage = (props: Props) => {
         </article>
       </dialog>
 
-      <figure>
-        <table role="grid">
-          <thead>
-            <tr>
-              <th scope="col">${t.label_app_name}</th>
-              <th scope="col">${t.label_base_url}</th>
-              <th scope="col">${t.status}</th>
-              <th scope="col">${t.action}</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${props.apps.map(app => html`
-              <tr onclick="document.getElementById('edit-app-${app.id}').showModal()" style="cursor:pointer" class="hover-row">
-                <td>
-                    <strong>${app.name}</strong><br>
-                    <small style="color:gray">${app.id}</small>
-                </td>
-                <td><a href="${app.base_url}" target="_blank" onclick="event.stopPropagation()">${app.base_url}</a></td>
-                <td>
-                    ${app.status === 'inactive'
-        ? html`<span style="color:orange">⏸ ${t.status_inactive}</span>`
-        : html`<span style="color:green">▶ ${t.status_active}</span>`}
-                </td>
-                <td>
-                  <div class="grid" style="grid-template-columns: repeat(2, auto); gap: 0.5rem;" onclick="event.stopPropagation()">
-                    <form method="POST" action="/admin/apps/toggle" style="margin:0;">
-                        <input type="hidden" name="id" value="${app.id}" />
-                        <input type="hidden" name="status" value="${app.status === 'inactive' ? 'active' : 'inactive'}" />
-                        <button class="outline" style="padding:0.3rem 0.6rem; font-size:0.8rem;">
-                            ${app.status === 'inactive' ? t.btn_resume : t.btn_pause}
-                        </button>
-                    </form>
-                    
-                    <form method="POST" action="/admin/apps/delete" style="margin:0;" onsubmit="return confirm('${t.confirm_delete_app}')">
-                        <input type="hidden" name="id" value="${app.id}" />
-                        <button class="outline secondary" style="padding:0.3rem 0.6rem; font-size:0.8rem; border-color:#d32f2f; color:#d32f2f;">${t.delete}</button>
-                    </form>
-                  </div>
-                  
-                  <dialog id="edit-app-${app.id}">
-                    <article>
-                      <header>
-                        <div class="modal-title">${t.header_edit_app}</div>
-                        <a href="#close" aria-label="Close" class="close" onclick="this.closest('dialog').close()">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      <div class="app-list">
+        ${props.apps.map(app => html`
+          <div style="background: rgba(255,255,255,0.6); padding: 1.5rem; border-radius: 12px; margin-bottom: 1rem; border: 1px solid rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 1rem;">
+            
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h4 style="margin-bottom: 0.2rem; font-weight: 700;">${app.name}</h4>
+                    <div style="font-size: 0.9rem; color: var(--text-sub); display: flex; gap: 1rem; align-items: center;">
+                        <span style="background: rgba(0,0,0,0.05); padding: 0.2rem 0.5rem; border-radius: 6px; font-family: monospace;">${app.id}</span>
+                        <a href="${app.base_url}" target="_blank" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.2rem;">
+                            ${app.base_url} <span class="material-symbols-outlined" style="font-size: 16px;">open_in_new</span>
                         </a>
-                      </header>
-                      <form method="POST" action="/admin/apps/update">
-                        <input type="hidden" name="id" value="${app.id}" />
-                        <label>
-                            ${t.label_app_name}
-                            <input type="text" name="name" value="${app.name}" required />
-                        </label>
-                        <label>
-                            ${t.label_base_url}
-                            <input type="url" name="base_url" value="${app.base_url}" required />
-                        </label>
-                        <button type="submit">${t.save}</button>
-                      </form>
-                    </article>
-                  </dialog>
-                </td>
-              </tr>
-            `)}
-          </tbody>
-        </table>
-      </figure>
+                    </div>
+                </div>
+                
+                <div>
+                    ${app.status === 'inactive'
+                        ? html`<span style="color:orange; display: inline-flex; align-items: center; gap: 0.3rem; font-weight: 600; font-size: 0.9rem;"><span class="material-symbols-outlined">pause_circle</span> ${t.status_inactive}</span>`
+                        : html`<span style="color:green; display: inline-flex; align-items: center; gap: 0.3rem; font-weight: 600; font-size: 0.9rem;"><span class="material-symbols-outlined">check_circle</span> ${t.status_active}</span>`}
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 1rem;">
+                <button class="outline secondary" onclick="document.getElementById('edit-app-${app.id}').showModal()" style="padding: 0.4rem 0.8rem; font-size: 0.9rem; width: auto; display: inline-flex; align-items: center; gap: 0.3rem;">
+                    <span class="material-symbols-outlined" style="font-size: 18px;">edit</span> ${t.edit}
+                </button>
+
+                <form method="POST" action="/admin/apps/toggle" style="margin:0;" onsubmit="return confirm('Toggle status?')">
+                    <input type="hidden" name="id" value="${app.id}" />
+                    <input type="hidden" name="status" value="${app.status === 'inactive' ? 'active' : 'inactive'}" />
+                    <button class="outline" style="padding: 0.4rem 0.8rem; font-size: 0.9rem; width: auto; display: inline-flex; align-items: center; gap: 0.3rem;">
+                        <span class="material-symbols-outlined" style="font-size: 18px;">${app.status === 'inactive' ? 'play_arrow' : 'pause'}</span>
+                        ${app.status === 'inactive' ? t.btn_resume : t.btn_pause}
+                    </button>
+                </form>
+                
+                <form method="POST" action="/admin/apps/delete" style="margin:0;" onsubmit="return confirm('${t.confirm_delete_app}')">
+                    <input type="hidden" name="id" value="${app.id}" />
+                    <button class="outline secondary" style="padding: 0.4rem 0.8rem; font-size: 0.9rem; width: auto; border-color: #d32f2f; color: #d32f2f; display: inline-flex; align-items: center; gap: 0.3rem;">
+                        <span class="material-symbols-outlined" style="font-size: 18px;">delete</span> ${t.delete}
+                    </button>
+                </form>
+            </div>
+
+            <dialog id="edit-app-${app.id}">
+                <article>
+                  <header>
+                    <div class="modal-title">${t.header_edit_app}</div>
+                    <a href="#close" aria-label="Close" class="close" onclick="this.closest('dialog').close()" role="button">
+                        <span class="material-symbols-outlined">close</span>
+                    </a>
+                  </header>
+                  <form method="POST" action="/admin/apps/update">
+                    <input type="hidden" name="id" value="${app.id}" />
+                    <label>
+                        ${t.label_app_name}
+                        <input type="text" name="name" value="${app.name}" required />
+                    </label>
+                    <label>
+                        ${t.label_base_url}
+                        <input type="url" name="base_url" value="${app.base_url}" required />
+                    </label>
+                    <button type="submit">${t.save}</button>
+                  </form>
+                </article>
+            </dialog>
+
+          </div>
+        `)}
+      </div>
     `
   })
 }
