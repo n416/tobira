@@ -1,10 +1,11 @@
 import { html, raw } from 'hono/html'
-import { css } from 'hono/css'
+import { css, keyframes } from 'hono/css'
 import { Layout } from './Layout'
 import { dict } from '../../i18n'
 import { Group, App } from '../../types'
 import { Modal } from '../components/Modal'
 import { Button } from '../components/Button'
+import { MultiSelect } from '../components/MultiSelect'
 
 interface Props {
   t: typeof dict.en
@@ -60,9 +61,51 @@ export const GroupsPage = (props: Props) => {
             if(validFrom) validFrom.value = new Date().toISOString().split('T')[0];
             var validTo = document.getElementById('g-perm-valid-to');
             if(validTo) validTo.value = '';
+            
+            window.resetGrantButton();
+
             window.loadGroupPerms(id);
         };
-        window.closeGroupModal = function() { if(gModal) gModal.close(); };
+        window.closeGroupModal = function() { 
+            if(gModal) gModal.close(); 
+            window.resetGrantButton();
+        };
+        
+        window.resetGrantButton = function() {
+            var btn = document.getElementById('btn-grant-perm');
+            if(btn) { btn.innerHTML = '<span class="material-symbols-outlined">add</span> <span>' + (i18n.btnGrant || 'Grant') + '</span>'; }
+            var card = document.getElementById('grant-form-card');
+            if(card) { card.classList.remove('blink-active'); }
+            if(tsControl) { tsControl.clear(); tsControl.refreshOptions(); }
+        };
+
+        window.highlightGrantForm = function() {
+            var btn = document.getElementById('btn-grant-perm');
+            if(btn) { 
+                btn.innerHTML = '<span class="material-symbols-outlined">edit</span> <span>' + (i18n.btnChange || 'Change') + '</span>'; 
+                btn.scrollIntoView({ behavior: 'smooth', block: 'center' }); 
+            }
+            
+            var card = document.getElementById('grant-form-card');
+            if(card) { 
+                card.classList.remove('blink-active'); 
+                void card.offsetWidth;
+                card.classList.add('blink-active'); 
+            }
+        };
+
+        window.editGroupPerm = function(appId, startTs, endTs) {
+            if (tsControl) { tsControl.setValue([appId]); }
+            var validFrom = document.getElementById('g-perm-valid-from');
+            if(validFrom) validFrom.value = new Date(startTs * 1000).toISOString().split('T')[0];
+            var validTo = document.getElementById('g-perm-valid-to');
+            if(validTo) { 
+                var isForever = endTs > 2000000000; 
+                validTo.value = isForever ? '' : new Date(endTs * 1000).toISOString().split('T')[0]; 
+            }
+            window.highlightGrantForm();
+        };
+
         window.loadGroupPerms = function(id) {
             fetch('/admin/api/group-details/' + id + '?t=' + new Date().getTime())
                 .then(function(r) { return r.json(); })
@@ -120,6 +163,14 @@ export const GroupsPage = (props: Props) => {
                 right.style.gap = '0.5rem';
                 right.style.alignItems = 'center';
                 
+                // Edit Button
+                var btnEdit = document.createElement('button');
+                btnEdit.className = 'action-btn';
+                btnEdit.innerHTML = '<span class="material-symbols-outlined">edit</span>';
+                btnEdit.onclick = function() { window.editGroupPerm(p.app_id, p.valid_from, p.valid_to); };
+                right.appendChild(btnEdit);
+
+                // Revoke Button
                 var btnRevoke = document.createElement('button');
                 btnRevoke.className = 'action-btn delete';
                 btnRevoke.innerHTML = '<span class="material-symbols-outlined">delete</span>';
@@ -160,7 +211,10 @@ export const GroupsPage = (props: Props) => {
             var validTo = dateVal ? Math.floor(new Date(dateVal).getTime()/1000) : Math.floor(Date.now()/1000) + 315360000;
             var validFrom = startVal ? Math.floor(new Date(startVal).getTime()/1000) : Math.floor(Date.now()/1000);
             fetch('/admin/api/group/permission/grant', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ group_id: currentGroupId, app_ids: appIds, valid_from: validFrom, valid_to: validTo }) })
-            .then(function() { window.loadGroupPerms(currentGroupId); if(tsControl) tsControl.clear(); });
+            .then(function() { 
+                window.loadGroupPerms(currentGroupId); 
+                window.resetGrantButton(); 
+            });
         };
         window.revokeGroupPerm = function(pid) {
             if(!confirm(i18n.msgRevoke || 'Revoke?')) return;
@@ -175,6 +229,12 @@ export const GroupsPage = (props: Props) => {
         };
     })();
   `);
+
+  const blinkActive = keyframes`
+        0% { border-color: #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+        50% { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.2); }
+        100% { border-color: #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+  `
 
   const listGrid = css`display: flex; flex-direction: column; gap: 1rem;`
   
@@ -224,6 +284,9 @@ export const GroupsPage = (props: Props) => {
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     margin-bottom: 2rem;
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    &.blink-active {
+        animation: ${blinkActive} 1s ease-in-out 3;
+    }
   `
   
   const formLabel = css`
@@ -258,72 +321,7 @@ export const GroupsPage = (props: Props) => {
     margin-top: 0.75rem;
   `
 
-  const pageWrapper = css`
-    & .ts-control {
-        background-color: #ffffff !important;
-        border: 1px solid #cbd5e1 !important;
-        border-radius: 8px !important;
-        padding: 6px 10px !important;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
-        font-size: 1rem !important;
-        min-height: auto !important;
-        display: flex !important;
-        flex-wrap: wrap !important;
-        align-items: center !important;
-        gap: 6px !important;
-    }
-    & .ts-wrapper .ts-control > input,
-    & .ts-wrapper.multi .ts-control > input,
-    & .ts-wrapper.single .ts-control > input,
-    & div.ts-control > input {
-        border: none !important;
-        background: transparent !important;
-        box-shadow: none !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        width: auto !important;
-        flex: 1 1 auto !important;
-        min-width: 4rem !important;
-        display: inline-block !important;
-        height: auto !important;
-        line-height: inherit !important;
-        border-radius: 0 !important;
-    }
-    & .ts-wrapper.focus .ts-control {
-        border-color: var(--primary) !important;
-        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
-    }
-    & .ts-wrapper.multi .ts-control > div.item {
-        background: #eff6ff !important;
-        color: #4f46e5 !important;
-        border: 1px solid #c7d2fe !important;
-        border-radius: 6px !important;
-        padding: 4px 10px !important;
-        margin: 0 !important;
-        font-size: 0.95rem !important;
-        font-weight: 500 !important;
-        display: flex !important;
-        align-items: center !important;
-        line-height: 1.2 !important;
-    }
-    & .ts-dropdown {
-        border-radius: 8px !important;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
-        border: 1px solid #e2e8f0 !important;
-        z-index: 20000 !important;
-        font-size: 1rem !important;
-    }
-    & .ts-dropdown .option {
-        padding: 10px 16px !important;
-        cursor: pointer !important;
-        color: #334155 !important;
-    }
-    & .ts-dropdown .option.active, & .ts-dropdown .active {
-        background-color: #f1f5f9 !important;
-        color: var(--primary) !important;
-        font-weight: 600 !important;
-    }
-  `
+  const pageWrapper = css``
 
   return Layout({
     t: t,
@@ -368,7 +366,7 @@ export const GroupsPage = (props: Props) => {
                     <div class="${itemTitle}">${g.name}</div>
                 </div>
                 <div>
-                    <form method="POST" action="/admin/groups/delete" style="margin:0;" onsubmit="return confirm('${t.confirm_delete_group}')" onclick="event.stopPropagation()">
+                    <form method="POST" action="/admin/groups/delete" style="margin:0;" onsubmit="return confirm('${t.confirm_delete_group.replace(/\n/g, '\\n')}')" onclick="event.stopPropagation()">
                          <input type="hidden" name="id" value="${g.id}" />
                          <button class="${deleteBtn}" title="${t.delete}">
                             <span class="material-symbols-outlined">delete</span>
@@ -385,13 +383,14 @@ export const GroupsPage = (props: Props) => {
             closeAction: "closeGroupModal()",
             closeBtnId: "modal-close-btn",
             children: html`
-                 <div class="${grantFormCard}">
+                 <div id="grant-form-card" class="${grantFormCard}">
                     <div style="margin-bottom: 1.5rem;">
                        <label class="${formLabel}">${t.modal_label_app}</label>
-                       <select id="g-perm-app-id" multiple autocomplete="off" placeholder="${t.placeholder_select}" style="width:100%; margin-bottom:0;">
-                          <option value="">Select App...</option>
-                          ${props.apps.map(a => html`<option value="${a.id}">${a.name}</option>`)}
-                       </select>
+                       ${MultiSelect({
+                           id: "g-perm-app-id",
+                           placeholder: t.placeholder_select,
+                           options: props.apps.map(a => ({ value: a.id, text: a.name }))
+                       })}
                     </div>
 
                     <div style="display:grid; grid-template-columns: 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
@@ -436,6 +435,8 @@ export const GroupsPage = (props: Props) => {
             data-alert-update-fail="${t.alert_update_fail}"
             data-alert-error="${t.alert_error}"
             data-placeholder-select="${t.placeholder_select}" 
+            data-btn-grant="${t.btn_grant}"
+            data-btn-change="${t.btn_change || 'Change'}"
             data-text-no-results="${t.text_no_results}"
           ></div>
           

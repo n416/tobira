@@ -104,7 +104,9 @@ export const Modal = ({ id, title, closeAction, closeBtnId, children }: ModalPro
     `
 
     return html`
-    <dialog id="${id}" class="${dialogClass}" onclick="if(event.target === this) { ${closeAction} }">
+    <dialog id="${id}" class="${dialogClass}" 
+        onmousedown="this.dataset.md=(event.target===this)" 
+        onclick="if(event.target===this && this.dataset.md==='true') { ${closeAction} }">
         <article>
             <header class="${headerClass}">
                 <div class="${titleClass}">${title}</div>

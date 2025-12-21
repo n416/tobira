@@ -5,6 +5,7 @@ import { dict } from '../../i18n'
 import { User, App, Group } from '../../types'
 import { Modal } from '../components/Modal'
 import { Button } from '../components/Button'
+import { MultiSelect } from '../components/MultiSelect'
 
 interface Props {
     t: typeof dict.en
@@ -32,6 +33,9 @@ export const UsersPage = (props: Props) => {
             var currentExistingIds = []; 
             var currentUserPermissions = []; 
             
+            // Global state for bulk mode
+            window.isBulkMode = false;
+
             document.addEventListener('DOMContentLoaded', function() {
                 if (typeof TomSelect !== 'undefined') {
                     tsControl = new TomSelect('#perm-app-id', { 
@@ -63,6 +67,16 @@ export const UsersPage = (props: Props) => {
             window.toggleAllCheckboxes = function(source) {
                 var checkboxes = document.querySelectorAll('.user-check');
                 for(var i=0; i<checkboxes.length; i++) { checkboxes[i].checked = source.checked; }
+            };
+            window.handleUserCardClick = function(e, id) {
+                if (e.target.closest('button') || e.target.closest('a') || e.target.tagName === 'INPUT') return;
+
+                if (window.isBulkMode) {
+                    var cb = document.querySelector('input.user-check[value="' + id + '"]');
+                    if (cb) cb.checked = !cb.checked;
+                } else {
+                    window.openUserModal(id);
+                }
             };
             window.deleteUser = function(id) {
                 if(!confirm(i18n.deleteConfirm)) return;
@@ -263,17 +277,22 @@ export const UsersPage = (props: Props) => {
             };
             var btn = document.getElementById('toggleBulkMode');
             var controls = document.getElementById('bulkControls');
-            var bulkMode = false;
+            var selectAllContainer = document.getElementById('selectAllContainer');
+            
             if(btn) {
                 btn.addEventListener('click', function(e) {
                     e.preventDefault();
-                    bulkMode = !bulkMode;
-                    var iconName = bulkMode ? 'close' : 'bolt';
-                    var text = bulkMode ? (i18n.btnExit || 'Exit') : (i18n.btnEnter || 'Bulk Mode');
+                    window.isBulkMode = !window.isBulkMode;
+                    
+                    var iconName = window.isBulkMode ? 'close' : 'bolt';
+                    var text = window.isBulkMode ? (i18n.btnExit || 'Exit') : (i18n.btnEnter || 'Bulk Mode');
+                    
                     btn.innerHTML = '<span class="material-symbols-outlined">' + iconName + '</span> ' + text;
-                    btn.className = bulkMode ? '' : 'btn-glass';
-                    if(controls) controls.style.display = bulkMode ? 'block' : 'none';
-                    document.querySelectorAll('.col-select').forEach(function(el) { el.style.display = bulkMode ? 'table-cell' : 'none'; });
+                    
+                    if(controls) controls.style.display = window.isBulkMode ? 'block' : 'none';
+                    if(selectAllContainer) selectAllContainer.style.display = window.isBulkMode ? 'block' : 'none';
+                    
+                    document.querySelectorAll('.col-select').forEach(function(el) { el.style.display = window.isBulkMode ? 'table-cell' : 'none'; });
                 });
             }
         })();
@@ -286,7 +305,6 @@ export const UsersPage = (props: Props) => {
     `
 
     const listGrid = css`display: flex; flex-direction: column; gap: 1rem;`
-    
     const listCard = css`
         background: #ffffff;
         border: 1px solid #e2e8f0;
@@ -304,10 +322,8 @@ export const UsersPage = (props: Props) => {
             transform: translateY(-1px);
         }
     `
-    
     const itemTitle = css`font-weight: 600; font-size: 1rem; color: #1e293b; margin-bottom: 0.2rem;`
     const itemSub = css`font-size: 0.85rem; color: #64748b; display: flex; align-items: center; gap: 0.4rem;`
-    
     const grantFormCard = css`
         background: #ffffff;
         padding: 2rem;
@@ -316,141 +332,79 @@ export const UsersPage = (props: Props) => {
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         margin-bottom: 2rem;
         transition: border-color 0.3s ease, box-shadow 0.3s ease;
-        &.blink-active {
-            animation: ${blinkActive} 1s ease-in-out 3;
-        }
+        &.blink-active { animation: ${blinkActive} 1s ease-in-out 3; }
     `
-    
-    const formLabel = css`
-        display: block;
-        font-weight: 700;
-        font-size: 0.95rem;
-        color: #1e293b;
-        margin-bottom: 0.5rem;
-    `
-    
+    const formLabel = css`display: block; font-weight: 700; font-size: 0.95rem; color: #1e293b; margin-bottom: 0.5rem;`
     const dateInput = css`
-        width: 100%;
-        padding: 0.8rem 1rem;
-        background: #ffffff;
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        font-size: 1rem;
-        color: #334155;
-        transition: all 0.2s;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        &:focus {
-            border-color: var(--primary);
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-        }
+        width: 100%; padding: 0.8rem 1rem; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1rem; color: #334155; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        &:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
     `
-
-    const quickBtnGroup = css`
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 0.75rem;
-        margin-top: 0.75rem;
-    `
-    
+    const quickBtnGroup = css`display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-top: 0.75rem;`
     const actionBtn = css`
-        background: transparent !important; 
-        border: none !important; 
-        color: #94a3b8 !important; 
-        cursor: pointer !important; 
-        padding: 8px !important; 
-        border-radius: 50% !important; 
-        transition: all 0.2s !important;
-        box-shadow: none !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        width: 36px !important;
-        height: 36px !important;
-        flex-shrink: 0 !important;
+        background: transparent !important; border: none !important; color: #94a3b8 !important; cursor: pointer !important; padding: 8px !important; border-radius: 50% !important; transition: all 0.2s !important; box-shadow: none !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 36px !important; height: 36px !important; flex-shrink: 0 !important;
         &:hover { background: #f1f5f9 !important; color: var(--text-main) !important; }
     `
     const deleteBtn = css`${actionBtn} &:hover { background: #fef2f2 !important; color: #ef4444 !important; }`
+    const checkboxLabel = css`display: flex; align-items: center; gap: 0.5rem; margin-top: 0.75rem; font-size: 0.95rem; color: #475569; cursor: pointer; width: fit-content; & input { width: 1.1em; height: 1.1em; cursor: pointer; }`
 
-    const checkboxLabel = css`
-        display: flex;
+    // Styled Select All Label (Button-like)
+    const selectAllLabel = css`
+        display: inline-flex;
         align-items: center;
         gap: 0.5rem;
-        margin-top: 0.75rem;
-        font-size: 0.95rem;
-        color: #475569;
         cursor: pointer;
-        width: fit-content;
-        & input { width: 1.1em; height: 1.1em; cursor: pointer; }
+        padding: 0.4rem 0.8rem;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        background: #fff;
+        transition: all 0.2s;
+        font-size: 0.9rem;
+        color: #475569;
+        font-weight: 500;
+        user-select: none;
+
+        &:hover {
+            background: #f8fafc;
+            border-color: #94a3b8;
+        }
+        
+        & input {
+            display: none;
+        }
+        
+        & .icon-box {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.1rem;
+            height: 1.1rem;
+            border-radius: 4px;
+            border: 2px solid #cbd5e1;
+            background: #fff;
+            transition: all 0.2s;
+            color: white;
+        }
+
+        /* Checked state */
+        &:has(input:checked) {
+            background: #eff6ff;
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        &:has(input:checked) .icon-box {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        /* Fallback for browsers not supporting :has */
+        & input:checked + .icon-box {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
     `
 
-    const pageWrapper = css`
-        /* Wrapper for page content to scope library overrides */
-        & .ts-control {
-            background-color: #ffffff !important;
-            border: 1px solid #cbd5e1 !important;
-            border-radius: 8px !important;
-            padding: 6px 10px !important;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
-            font-size: 1rem !important;
-            min-height: auto !important;
-            display: flex !important;
-            flex-wrap: wrap !important;
-            align-items: center !important;
-            gap: 6px !important;
-        }
-        & .ts-wrapper .ts-control > input,
-        & .ts-wrapper.multi .ts-control > input,
-        & .ts-wrapper.single .ts-control > input,
-        & div.ts-control > input {
-            border: none !important;
-            background: transparent !important;
-            box-shadow: none !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            width: auto !important;
-            flex: 1 1 auto !important;
-            min-width: 4rem !important;
-            display: inline-block !important;
-            height: auto !important;
-            line-height: inherit !important;
-            border-radius: 0 !important;
-        }
-        & .ts-wrapper.focus .ts-control {
-            border-color: var(--primary) !important;
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
-        }
-        & .ts-wrapper.multi .ts-control > div.item {
-            background: #eff6ff !important;
-            color: #4f46e5 !important;
-            border: 1px solid #c7d2fe !important;
-            border-radius: 6px !important;
-            padding: 4px 10px !important;
-            margin: 0 !important;
-            font-size: 0.95rem !important;
-            font-weight: 500 !important;
-            display: flex !important;
-            align-items: center !important;
-            line-height: 1.2 !important;
-        }
-        & .ts-dropdown {
-            border-radius: 8px !important;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
-            border: 1px solid #e2e8f0 !important;
-            z-index: 20000 !important;
-            font-size: 1rem !important;
-        }
-        & .ts-dropdown .option {
-            padding: 10px 16px !important;
-            cursor: pointer !important;
-            color: #334155 !important;
-        }
-        & .ts-dropdown .option.active, & .ts-dropdown .active {
-            background-color: #f1f5f9 !important;
-            color: var(--primary) !important;
-            font-weight: 600 !important;
-        }
-    `
+    const pageWrapper = css``
 
     return Layout({
         t: t,
@@ -464,9 +418,12 @@ export const UsersPage = (props: Props) => {
               <h3 style="font-size:1rem; font-weight:normal; color:#64748b;">${t.header_invite}</h3>
             </hgroup>
             <div style="text-align:right; display: flex; justify-content: flex-end; align-items: start;">
-               <button type="button" id="toggleBulkMode" class="btn-glass" style="width: auto; margin-bottom: 0;">
-                    <span class="material-symbols-outlined">bolt</span> ${t.btn_bulk_mode}
-               </button>
+               ${Button({
+                   id: "toggleBulkMode",
+                   variant: "outline",
+                   style: "width: auto; margin-bottom: 0;",
+                   children: html`<span class="material-symbols-outlined">bolt</span> ${t.btn_bulk_mode}`
+               })}
                <button onclick="document.getElementById('invite-modal').showModal()" style="width: auto; margin-bottom: 0; margin-left: 1rem; display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem;">
                     <span class="material-symbols-outlined">add</span> ${t.header_invite}
                </button>
@@ -507,10 +464,6 @@ export const UsersPage = (props: Props) => {
             <div id="bulkControls" style="display:none; background:#f0f7ff; padding:1rem; border-radius:8px; margin-bottom:1rem; border:1px solid #cce5ff;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem;">
                     <h4 style="margin:0; font-size:1.1rem; color:#0369a1;">${t.btn_bulk_mode}</h4>
-                    <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-                        <input type="checkbox" onclick="toggleAllCheckboxes(this)" style="margin:0; width:1.2em; height:1.2em;">
-                        <small>Select All</small>
-                    </label>
                 </div>
                 <div class="grid">
                     <label>
@@ -534,14 +487,26 @@ export const UsersPage = (props: Props) => {
                 </button>
             </div>
 
-            <h3 style="font-size:1.2rem; font-weight:600; margin-bottom:1rem;">${t.header_registered_users}</h3>
+            <div style="margin-bottom:1rem;">
+                <h3 style="font-size:1.2rem; font-weight:600; margin-bottom:0.5rem;">${t.header_registered_users}</h3>
+                
+                <div id="selectAllContainer" style="display:none; margin-top: 0.5rem; margin-left: 0.7rem;">
+                    <label class="${selectAllLabel}">
+                        <input type="checkbox" onclick="toggleAllCheckboxes(this)">
+                        <span class="icon-box">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">check</span>
+                        </span>
+                        <span>Select All</span>
+                    </label>
+                </div>
+            </div>
             
             <div class="${listGrid}">
                 ${props.users.map((u) => {
                 const g = props.groups.find(x => x.id === u.group_id)
                 const gName = g ? g.name : t.no_affiliation
                 return html`
-                <div class="${listCard}" onclick="openUserModal('${u.id}')">
+                <div class="${listCard}" onclick="handleUserCardClick(event, '${u.id}')">
                     <div style="display:flex; align-items:center; gap:1rem; flex-grow:1;">
                         <div class="col-select" style="display:none;" onclick="event.stopPropagation()">
                             <input type="checkbox" name="ids" value="${u.id}" class="user-check" style="margin:0; width:1.2em; height:1.2em;" />
@@ -591,10 +556,11 @@ export const UsersPage = (props: Props) => {
                   <div id="grant-form-card" class="${grantFormCard}">
                     <div style="margin-bottom: 1.5rem;">
                        <label class="${formLabel}">${t.label_app}</label>
-                       <select id="perm-app-id" multiple autocomplete="off" placeholder="${t.placeholder_select}" style="width:100%; margin-bottom:0;">
-                          <option value="">Select App...</option>
-                          ${props.apps.map(a => html`<option value="${a.id}">${a.name}</option>`)}
-                       </select>
+                       ${MultiSelect({
+                           id: "perm-app-id",
+                           placeholder: t.placeholder_select,
+                           options: props.apps.map(a => ({ value: a.id, text: a.name }))
+                       })}
                        <label class="${checkboxLabel}">
                            <input type="checkbox" id="exclude-existing-check" />
                            登録されているものは含まない
