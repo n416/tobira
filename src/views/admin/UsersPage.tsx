@@ -426,9 +426,11 @@ export const UsersPage = (props: Props) => {
                    style: "width: auto; margin-bottom: 0;",
                    children: html`<span class="material-symbols-outlined">bolt</span> ${t.btn_bulk_mode}`
                })}
-               <button onclick="document.getElementById('invite-modal').showModal()" style="width: auto; margin-bottom: 0; margin-left: 1rem; display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem;">
-                    <span class="material-symbols-outlined">add</span> ${t.header_invite}
-               </button>
+               ${Button({
+                   onclick: "document.getElementById('invite-modal').showModal()",
+                   style: "width: auto; margin-bottom: 0; margin-left: 1rem;",
+                   children: html`<span class="material-symbols-outlined">add</span> ${t.header_invite}`
+               })}
             </div>
           </div>
           

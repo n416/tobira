@@ -318,9 +318,11 @@ export const GroupsPage = (props: Props) => {
       <div class="${pageWrapper}">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
             <h2 style="margin-bottom: 0;">${t.section_groups}</h2>
-            <button onclick="document.getElementById('new-group-modal').showModal()" style="width: auto; margin-bottom: 0; padding: 0.5rem 1rem; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem; background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%); color:white; border:none; border-radius:12px; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);">
-                <span class="material-symbols-outlined" style="font-size:18px;">add</span> ${t.btn_add_group}
-            </button>
+            ${Button({
+                onclick: "document.getElementById('new-group-modal').showModal()",
+                style: "width: auto; margin-bottom: 0;",
+                children: html`<span class="material-symbols-outlined" style="font-size:18px;">add</span> ${t.btn_add_group}`
+            })}
           </div>
 
           ${Modal({
