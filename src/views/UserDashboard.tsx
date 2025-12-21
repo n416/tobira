@@ -1,6 +1,9 @@
 import { html } from 'hono/html'
 import { dict } from '../i18n'
 import { App } from '../types'
+import { Layout } from './components/Layout'
+import { Card } from './components/Card'
+import { Button } from './components/Button'
 
 interface Props {
   t: typeof dict.en
@@ -10,73 +13,68 @@ interface Props {
 
 export const UserDashboard = (props: Props) => {
   const t = props.t
-  
-  return html`
-    <!DOCTYPE html>
-    <html lang="${t.lang}">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>${t.title_user_dashboard} - Tobira</title>
-      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
-      <style>
-        :root { --primary: #0288d1; }
-        body > main { padding-top: 1.5rem; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3rem; padding-bottom: 1rem; border-bottom: 1px solid #eee; }
-        .brand { font-size: 1.25rem; font-weight: bold; color: #333; text-decoration: none; }
-        .user-nav { display: flex; align-items: center; gap: 1.5rem; }
-        .user-email { font-size: 0.9rem; color: #666; }
-        .logout-btn { padding: 0.3rem 0.8rem; font-size: 0.85rem; width: auto; margin-bottom: 0; }
-        
-        .section-title { margin-bottom: 1.5rem; font-size: 1.1rem; color: #444; font-weight: 600; }
-        .app-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.5rem; }
-        .app-card { border: 1px solid #eee; border-radius: 6px; padding: 1.5rem; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.03); transition: transform 0.2s, box-shadow 0.2s; display: flex; flex-direction: column; justify-content: space-between; height: 100%; text-decoration: none; color: inherit; }
-        .app-card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.08); border-color: var(--primary); }
-        .app-content { margin-bottom: 1.5rem; }
-        .app-name { font-size: 1.1rem; font-weight: bold; margin-bottom: 0.3rem; color: #333; }
-        .app-url { font-size: 0.8rem; color: #888; word-break: break-all; }
-        .launch-btn { width: 100%; margin-bottom: 0; font-size: 0.9rem; }
-        .no-apps { text-align: center; padding: 4rem 1rem; color: #777; background: #f9f9f9; border-radius: 8px; }
-        
-        .account-links { margin-top: 3rem; text-align: right; font-size: 0.9rem; }
-        .account-links a { color: #666; text-decoration: none; }
-        .account-links a:hover { text-decoration: underline; color: var(--primary); }
-      </style>
-    </head>
-    <body>
-      <main class="container">
+
+  return Layout({
+    title: t.title_user_dashboard,
+    lang: t.lang,
+    width: 800, // Wider layout for dashboard
+    children: html`
+        <style>
+          .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.3); }
+          .brand { font-size: 1.5rem; font-weight: 800; color: var(--primary); text-decoration: none; }
+          .user-nav { display: flex; align-items: center; gap: 1rem; }
+          .user-email { font-size: 0.9rem; color: var(--text-sub); display: none; } /* Hide email on small screens if needed, or show */
+          @media(min-width: 600px) { .user-email { display: inline; } }
+
+          .app-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+          
+          /* App Card specialized style */
+          .app-card-link { text-decoration: none; color: inherit; display: block; height: 100%; transition: transform 0.2s; }
+          .app-card-link:hover { transform: translateY(-4px); }
+          .app-card-content { background: rgba(255,255,255,0.6); backdrop-filter: blur(10px); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(255,255,255,0.5); height: 100%; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+          .app-name { font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--text-main); }
+          .app-url { font-size: 0.85rem; color: var(--text-sub); word-break: break-all; margin-bottom: 1.5rem; }
+          
+          .no-apps { text-align: center; padding: 3rem; background: rgba(255,255,255,0.4); border-radius: 16px; color: var(--text-sub); }
+          
+          .logout-btn { padding: 0.5rem 1rem; background: rgba(255,255,255,0.5); border: 1px solid rgba(0,0,0,0.1); border-radius: 8px; font-size: 0.85rem; cursor: pointer; color: var(--text-main); text-decoration: none; transition: background 0.2s; }
+          .logout-btn:hover { background: rgba(255,255,255,0.8); }
+        </style>
+
         <header class="header">
             <div class="brand">Tobira</div>
             <div class="user-nav">
                 <span class="user-email">${props.userEmail}</span>
-                <a href="/logout" role="button" class="outline secondary logout-btn">${t.logout}</a>
+                <a href="/logout" class="logout-btn">${t.logout}</a>
             </div>
         </header>
 
         <section>
-            <h4 class="section-title">${t.dashboard_apps_header}</h4>
+            <h4 style="margin-bottom: 1.5rem; font-size: 1.1rem; color: var(--text-main); font-weight: 600;">${t.dashboard_apps_header}</h4>
             ${props.apps.length === 0 ? html`
                 <div class="no-apps"><p>${t.no_apps_assigned}</p></div>
             ` : html`
                 <div class="app-grid">
                     ${props.apps.map(app => html`
-                        <a href="/login?redirect_to=${app.base_url}" class="app-card">
-                            <div class="app-content">
-                                <div class="app-name">${app.name}</div>
-                                <div class="app-url">${app.base_url}</div>
+                        <a href="/login?redirect_to=${app.base_url}" class="app-card-link">
+                            <div class="app-card-content">
+                                <div>
+                                    <div class="app-name">${app.name}</div>
+                                    <div class="app-url">${app.base_url}</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <span style="font-size: 0.9rem; font-weight: 600; color: var(--primary);">Login &rarr;</span>
+                                </div>
                             </div>
-                            <div><button class="launch-btn">${t.btn_open_app}</button></div>
                         </a>
                     `)}
                 </div>
             `}
         </section>
         
-        <div class="account-links">
-            <a href="/change-password">🔑 ${t.btn_change_password}</a>
+        <div style="margin-top: 3rem; text-align: right;">
+            <a href="/change-password" style="font-size: 0.9rem;">🔑 ${t.btn_change_password}</a>
         </div>
-      </main>
-    </body>
-    </html>
-  `
+    `
+  })
 }

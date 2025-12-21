@@ -80,21 +80,25 @@ async function getUser(c: any) {
 // ------------------------------------------------------------------
 
 app.get('/', async (c) => {
-    const t = getLang(c)
-    const user = await getUser(c)
-    if (!user) return c.redirect('/login')
+    try {
+        const t = getLang(c)
+        const user = await getUser(c)
+        if (!user) return c.redirect('/login')
 
-    const now = Math.floor(Date.now() / 1000)
-    const { results: apps } = await c.env.DB.prepare(`
-    SELECT DISTINCT a.* FROM apps a
-    LEFT JOIN permissions up ON a.id = up.app_id AND up.user_id = ?
-    LEFT JOIN group_permissions gp ON a.id = gp.app_id AND gp.group_id = ?
-    WHERE 
-      (a.status IS NULL OR a.status = 'active') AND
-      ((up.valid_from <= ? AND up.valid_to >= ?) OR (up.id IS NULL AND gp.valid_from <= ? AND gp.valid_to >= ?))
-  `).bind(user.id, user.group_id, now, now, now, now).all()
+        const now = Math.floor(Date.now() / 1000)
+        const { results: apps } = await c.env.DB.prepare(`
+        SELECT DISTINCT a.* FROM apps a
+        LEFT JOIN permissions up ON a.id = up.app_id AND up.user_id = ?
+        LEFT JOIN group_permissions gp ON a.id = gp.app_id AND gp.group_id = ?
+        WHERE 
+          (a.status IS NULL OR a.status = 'active') AND
+          ((up.valid_from <= ? AND up.valid_to >= ?) OR (up.id IS NULL AND gp.valid_from <= ? AND gp.valid_to >= ?))
+      `).bind(user.id, user.group_id || null, now, now, now, now).all()
 
-    return c.html(<UserDashboard t={t} userEmail={user.email} apps={apps as any} />)
+        return c.html(<UserDashboard t={t} userEmail={user.email} apps={apps as any} />)
+    } catch (e: any) {
+        return c.json({ error: e.message, stack: e.stack }, 500)
+    }
 })
 
 app.get('/login', async (c) => {
@@ -331,11 +335,17 @@ app.post('/admin/apps/delete', async (c) => {
     return c.redirect('/admin/apps')
 })
 app.get('/admin/groups', async (c) => {
-    const user = await getAdmin(c)
-    if (!user) return c.redirect('/login')
-    const groups = await c.env.DB.prepare('SELECT * FROM groups ORDER BY created_at DESC').all()
-    const apps = await c.env.DB.prepare('SELECT * FROM apps').all()
-    return c.html(<GroupsPage t={getLang(c)} userEmail={user.email} groups={groups.results as any} apps={apps.results as any} />)
+    try {
+        const user = await getAdmin(c)
+        if (!user) return c.redirect('/login')
+        const groups = await c.env.DB.prepare('SELECT * FROM groups ORDER BY created_at DESC').all()
+        const apps = await c.env.DB.prepare('SELECT * FROM apps').all()
+        if (!groups.success) throw new Error('Groups DB Error: ' + groups.error)
+        if (!apps.success) throw new Error('Apps DB Error: ' + apps.error)
+        return c.html(<GroupsPage t={getLang(c)} userEmail={user.email} groups={groups.results as any} apps={apps.results as any} />)
+    } catch (e: any) {
+        return c.text('Error: ' + e.message + '\n' + e.stack, 500)
+    }
 })
 app.post('/admin/groups', async (c) => {
     const user = await getAdmin(c)
@@ -476,20 +486,29 @@ app.get('/admin/api/user-details/:id', async (c) => {
     return c.json({ email: user.email, permissions: combined, group_id: user.group_id })
 })
 app.post('/admin/api/user/group', async (c) => {
-    const user = await getAdmin(c)
-    if (!user) return c.json({ error: 'Unauthorized' }, 401)
-    const body = await c.req.json()
-    const userId = body['user_id']
-    const groupId = body['group_id'] || null
-    await c.env.DB.prepare('UPDATE users SET group_id = ? WHERE id = ?').bind(groupId || null, userId).run()
-    let gName = 'None';
-    if (groupId) {
-        const g = await c.env.DB.prepare('SELECT name FROM groups WHERE id = ?').bind(groupId).first<{ name: string }>();
-        if (g) gName = g.name;
+    try {
+        const user = await getAdmin(c)
+        if (!user) return c.json({ error: 'Unauthorized' }, 401)
+        const body = await c.req.json()
+        const userId = body['user_id']
+        const groupId = body['group_id'] || null
+
+        await c.env.DB.prepare('UPDATE users SET group_id = ? WHERE id = ?').bind(groupId || null, userId).run()
+
+        let gName = 'None';
+        if (groupId) {
+            const g = await c.env.DB.prepare('SELECT name FROM groups WHERE id = ?').bind(groupId).first<{ name: string }>();
+            if (g) gName = g.name;
+        }
+
+        const details = JSON.stringify({ key: 'log_user_group_update', params: { user: userId, group: gName, admin: user.email } });
+        await c.env.DB.prepare('INSERT INTO audit_logs (event_type, details) VALUES (?, ?)').bind('USER_UPDATE', details).run()
+
+        return c.json({ success: true })
+    } catch (e: any) {
+        console.error('Group update error:', e);
+        return c.json({ error: e.message, stack: e.stack }, 500)
     }
-    const details = JSON.stringify({ key: 'log_user_group_update', params: { user: userId, group: gName, admin: user.email } });
-    await c.env.DB.prepare('INSERT INTO audit_logs (event_type, details) VALUES (?, ?)').bind('USER_UPDATE', details).run()
-    return c.json({ success: true })
 })
 app.post('/admin/api/user/permission/revoke', async (c) => {
     const user = await getAdmin(c)

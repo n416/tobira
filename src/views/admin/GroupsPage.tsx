@@ -45,16 +45,13 @@ export const GroupsPage = (props: Props) => {
           <tbody>
             ${props.groups.length === 0 ? html`<tr><td colspan="2">${t.no_groups}</td></tr>` : ''}
             ${props.groups.map(g => html`
-              <tr>
+              <tr onclick="openGroupModal('${g.id}', '${g.name}')" style="cursor:pointer" class="hover-row">
                 <td>${g.name}</td>
                 <td>
-                    <div class="grid" style="grid-template-columns: auto auto; gap: 0.5rem;">
-                        <button class="outline" style="padding:0.4rem 0.8rem; font-size:0.8rem; width:100%;" 
-                             type="button" onclick="openGroupModal('${g.id}', '${g.name}')">${t.edit}</button>
-
-                        <form method="POST" action="/admin/groups/delete" style="margin:0;" onsubmit="return confirm('${t.confirm_delete_group}')">
+                    <div class="grid" style="grid-template-columns: auto auto; gap: 0.5rem; justify-content: flex-end;">
+                        <form method="POST" action="/admin/groups/delete" style="margin:0;" onsubmit="return confirm('${t.confirm_delete_group}')" onclick="event.stopPropagation()">
                              <input type="hidden" name="id" value="${g.id}" />
-                             <button class="outline secondary" style="padding:0.4rem 0.8rem; font-size:0.8rem; border-color:#d32f2f; color:#d32f2f; width:100%;">${t.delete}</button>
+                             <button class="outline secondary" style="padding:0.4rem 0.8rem; font-size:0.8rem; border-color:#d32f2f; color:#d32f2f; width: auto;">${t.delete}</button>
                         </form>
                     </div>
                 </td>
@@ -65,10 +62,12 @@ export const GroupsPage = (props: Props) => {
       </figure>
 
       <dialog id="group-modal">
-        <article style="width: 100%; max-width: 800px;">
+        <article>
           <header>
-            <a href="#close" aria-label="Close" class="close" onclick="closeGroupModal()"></a>
-            ${t.modal_section_group}: <span id="modal-group-name"></span>
+            <div class="modal-title">${t.modal_section_group}: <span id="modal-group-name"></span></div>
+            <a href="#close" aria-label="Close" class="close" onclick="closeGroupModal()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </a>
           </header>
           
           <div class="grid">
@@ -91,7 +90,7 @@ export const GroupsPage = (props: Props) => {
                         </div>
                     </div>
                 </div>
-                <button type="button" onclick="grantGroupPermission()">${t.btn_grant}</button>
+                <button type="button" onclick="grantGroupPermission()" style="width:auto; margin-top:1rem">${t.btn_grant}</button>
              </div>
           </div>
           
@@ -119,10 +118,10 @@ export const GroupsPage = (props: Props) => {
         function openGroupModal(id, name) {
             currentGroupId = id;
             document.getElementById('modal-group-name').innerText = name;
-            gModal.setAttribute('open', true);
+            gModal.showModal();
             loadGroupPerms(id);
         }
-        function closeGroupModal() { gModal.removeAttribute('open'); }
+        function closeGroupModal() { gModal.close(); }
         
         function loadGroupPerms(id) {
             fetch('/admin/api/group-details/' + id + '?t=' + new Date().getTime())

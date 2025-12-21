@@ -10,14 +10,14 @@ export const dict = {
     title_invite: 'Setup Password',
     title_forgot: 'Reset Password',
     title_change_password: 'Change Password',
-    
+
     // Nav
     nav_home: 'Home',
     nav_apps: 'Apps',
     nav_groups: 'Affiliations',
     nav_users: 'Users',
     nav_logs: 'Audit Logs',
-    
+
     // Login
     login_header: 'Login to',
     email: 'Email',
@@ -25,7 +25,7 @@ export const dict = {
     btn_login: 'Log in',
     forgot_password: 'Forgot Password?',
     back_to_login: 'Back to Login',
-    
+
     // Common
     logout: 'Logout',
     cancel: 'Cancel',
@@ -34,7 +34,7 @@ export const dict = {
     edit: 'Edit',
     status: 'Status',
     action: 'Action',
-    
+
     // User Dashboard
     dashboard_welcome: 'Welcome, {email}',
     dashboard_apps_header: 'Your Applications',
@@ -43,7 +43,7 @@ export const dict = {
     header_change_password: 'Change Password',
     msg_password_changed: 'Password changed successfully.',
     no_apps_assigned: 'No applications assigned. Please contact your administrator.',
-    
+
     // Apps
     section_apps: 'Applications',
     header_new_app: 'Register New App',
@@ -59,7 +59,7 @@ export const dict = {
     status_active: 'Active',
     status_inactive: 'Paused',
     confirm_delete_app: 'Are you sure? All permissions associated with this app will be permanently deleted.',
-    
+
     // Groups
     section_groups: 'Affiliation Management',
     header_new_group: 'New Affiliation',
@@ -68,7 +68,7 @@ export const dict = {
     btn_add_group: 'Add Affiliation',
     no_groups: 'No affiliations defined.',
     confirm_delete_group: 'Are you sure you want to delete this affiliation? Users in this group will become "No Affiliation".',
-    
+
     // Users
     section_users: 'User Management',
     header_invite: 'Invite User',
@@ -78,16 +78,17 @@ export const dict = {
     label_affiliation: 'Affiliation',
     no_affiliation: 'No Affiliation',
     confirm_delete_user: 'Are you sure you want to delete this user? This action cannot be undone.',
-    
+    confirm_revoke_permission: 'Are you sure you want to revoke this permission?',
+
     // Bulk & Permissions
     btn_bulk_mode: 'Bulk Edit Mode',
     btn_exit_bulk: 'Exit Bulk Mode',
     btn_bulk_apply: 'Apply Changes',
     header_user_details: 'User Details',
     tab_permissions: 'Permissions',
-    
+
     header_grant: 'Grant Permission',
-    header_grant_permission: 'Grant Access', 
+    header_grant_permission: 'Grant Access',
     header_active_permissions: 'Active Permissions',
     label_user: 'User',
     label_app: 'Application',
@@ -98,25 +99,28 @@ export const dict = {
     source_user: 'User Specific',
     source_group: 'Affiliation',
     msg_override: 'User settings override affiliation settings.',
-    
+
     // Modal Specific
     modal_th_app: 'Application',
     modal_th_source: 'Source',
     modal_th_valid: 'Validity Period',
     modal_th_action: 'Action',
     modal_section_group: 'Affiliation',
+    desc_group_override: 'User settings override affiliation permissions.',
     modal_section_perm: 'Permission Status',
     modal_section_add: 'Grant Permission',
     modal_label_app: 'Select Apps (Multiple)',
     modal_label_no_expire: 'No Expiration',
-    
+    btn_add_perm: 'Add Permission',
+    btn_change: 'Change',
+
     // Date Quick Buttons
     btn_date_today: 'Today',
     btn_date_start_month: '1st of Month',
     btn_term_1mo: '+1 Month',
     btn_term_1yr: '+1 Year',
     btn_term_forever: 'Indefinite',
-    
+
     // Logs
     section_logs: 'Audit Logs',
     th_time: 'Time',
@@ -128,7 +132,7 @@ export const dict = {
     pager_prev: '← Prev',
     pager_next: 'Next →',
     pager_info: 'Page {current} of {total} ({count} logs)',
-    
+
     // Log Events
     event_APP_CREATED: 'App Created',
     event_APP_UPDATED: 'App Updated',
@@ -166,7 +170,7 @@ export const dict = {
     btn_create_account: 'Create Account',
     btn_reset_password: 'Reset Password',
     btn_send_link: 'Send Reset Link',
-    
+
     // Errors/Messages
     invite_created: 'Invite Link Created',
     invite_copy_hint: 'Copy this link.',
@@ -179,7 +183,7 @@ export const dict = {
     error_not_started: 'Not started',
     error_expired: 'Expired',
     msg_account_created: 'Account created. Please log in.',
-    
+
     // Stats
     stat_apps: 'Applications',
     stat_users: 'Users',
@@ -193,7 +197,7 @@ export const dict = {
     title_invite: 'パスワード設定',
     title_forgot: 'パスワードリセット',
     title_change_password: 'パスワード変更',
-    
+
     tobira_admin: 'Tobira 管理画面',
 
     // Nav
@@ -210,7 +214,7 @@ export const dict = {
     btn_login: 'ログイン',
     forgot_password: 'パスワードを忘れた場合',
     back_to_login: 'ログインに戻る',
-    
+
     // Common
     logout: 'ログアウト',
     cancel: 'キャンセル',
@@ -219,7 +223,7 @@ export const dict = {
     edit: '編集',
     status: '状態',
     action: '操作',
-    
+
     // User Dashboard
     dashboard_welcome: 'ようこそ: {email}',
     dashboard_apps_header: '利用可能なアプリ',
@@ -228,7 +232,7 @@ export const dict = {
     header_change_password: 'パスワード変更',
     msg_password_changed: 'パスワードを変更しました',
     no_apps_assigned: '利用可能なアプリがありません。管理者に問い合わせてください。',
-    
+
     // Apps
     section_apps: '連携アプリ一覧',
     header_new_app: '新規アプリ登録',
@@ -244,7 +248,7 @@ export const dict = {
     status_active: '稼働中',
     status_inactive: '停止中',
     confirm_delete_app: '本当に削除しますか？\nこのアプリに関連する全てのユーザー権限・所属権限も完全に削除されます。',
-    
+
     // Groups
     section_groups: '所属管理',
     header_new_group: '新規所属登録',
@@ -253,7 +257,7 @@ export const dict = {
     btn_add_group: '所属を追加',
     no_groups: '所属が登録されていません',
     confirm_delete_group: '本当にこの所属を削除しますか？\nこの所属に設定されているユーザーは「所属なし」になります。',
-    
+
     // Users
     section_users: 'ユーザー管理',
     header_invite: '新規ユーザー招待',
@@ -263,14 +267,15 @@ export const dict = {
     label_affiliation: '所属',
     no_affiliation: '所属なし',
     confirm_delete_user: '本当にこのユーザーを削除しますか？\nこの操作は取り消せません。',
-    
+    confirm_revoke_permission: '本当にこの権限を取り消しますか？',
+
     // Bulk & Permissions
     btn_bulk_mode: '一括編集モード',
     btn_exit_bulk: '一括モード終了',
     btn_bulk_apply: '一括適用',
     header_user_details: 'ユーザー詳細・権限',
     tab_permissions: '権限状況',
-    
+
     header_grant: '権限を付与',
     header_grant_permission: '権限付与',
     header_active_permissions: '有効な権限リスト',
@@ -283,18 +288,21 @@ export const dict = {
     source_user: 'ユーザー個別',
     source_group: '所属(継承)',
     msg_override: '※ユーザー個別の設定がある場合、所属の設定より優先されます。',
-    
+
     // Modal Specific
     modal_th_app: 'アプリ名',
     modal_th_source: '適用元',
     modal_th_valid: '有効期間',
     modal_th_action: '操作',
     modal_section_group: '所属設定',
+    desc_group_override: '※ユーザー個別の設定がある場合、所属の設定より優先されます。',
     modal_section_perm: '現在の権限',
     modal_section_add: '権限を追加',
     modal_label_app: 'アプリを選択 (複数可)',
     modal_label_no_expire: '無期限',
-    
+    btn_add_perm: '権限を追加',
+    btn_change: '変更',
+
     // Date Quick Buttons
     btn_date_today: '今日',
     btn_date_start_month: '月初',
@@ -351,7 +359,7 @@ export const dict = {
     btn_create_account: 'アカウント作成',
     btn_reset_password: 'パスワード変更',
     btn_send_link: 'リセットリンクを送信',
-    
+
     // Errors/Messages
     invite_created: '招待リンクを作成しました',
     invite_copy_hint: 'リンクをコピーしてください。',
@@ -364,7 +372,7 @@ export const dict = {
     error_not_started: '期間前です',
     error_expired: '期限切れです',
     msg_account_created: 'アカウントを作成しました。ログインしてください。',
-    
+
     // Stats
     stat_apps: '登録アプリ数',
     stat_users: '登録ユーザー数',

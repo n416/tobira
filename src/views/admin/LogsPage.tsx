@@ -14,32 +14,32 @@ interface Props {
 
 export const LogsPage = (props: Props) => {
   const t = props.t
-  
+
   // Helper to parse details JSON safely
   const formatDetails = (jsonStr: string) => {
-      try {
-          const obj = JSON.parse(jsonStr);
-          // If the object has a "key" for translation, use it
-          if (obj.key && t[obj.key]) {
-             let msg = t[obj.key];
-             // Replace params
-             if (obj.params) {
-                 for (const k in obj.params) {
-                     msg = msg.replace('{' + k + '}', obj.params[k]);
-                 }
-             }
-             return msg;
+    try {
+      const obj = JSON.parse(jsonStr);
+      // If the object has a "key" for translation, use it
+      if (obj.key && (t as any)[obj.key]) {
+        let msg = (t as any)[obj.key];
+        // Replace params
+        if (obj.params) {
+          for (const k in obj.params) {
+            msg = msg.replace('{' + k + '}', obj.params[k]);
           }
-          return jsonStr;
-      } catch(e) { return jsonStr; }
+        }
+        return msg;
+      }
+      return jsonStr;
+    } catch (e) { return jsonStr; }
   }
 
   const events = [
-      'LOGIN', 'PASSWORD_CHANGE',
-      'APP_CREATED', 'APP_UPDATED', 'APP_DELETED',
-      'USER_UPDATE', 'USER_DELETED',
-      'PERMISSION_GRANT', 'PERMISSION_REVOKE',
-      'GROUP_PERMISSION_GRANT', 'GROUP_PERMISSION_REVOKE', 'GROUP_DELETED'
+    'LOGIN', 'PASSWORD_CHANGE',
+    'APP_CREATED', 'APP_UPDATED', 'APP_DELETED',
+    'USER_UPDATE', 'USER_DELETED',
+    'PERMISSION_GRANT', 'PERMISSION_REVOKE',
+    'GROUP_PERMISSION_GRANT', 'GROUP_PERMISSION_REVOKE', 'GROUP_DELETED'
   ];
 
   return Layout({
@@ -49,22 +49,22 @@ export const LogsPage = (props: Props) => {
     children: html`
       <h2>${t.section_logs}</h2>
       
-      <details>
-        <summary>${t.label_filter_event}</summary>
-        <form method="GET" action="/admin/logs" style="margin-bottom:1rem;">
-            <div class="grid">
-                <select name="event">
-                    <option value="">${t.option_all_events}</option>
-                    ${events.map(e => html`
-                        <option value="${e}" ${props.currentFilter === e ? 'selected' : ''}>
-                            ${t['event_' + e] || e}
-                        </option>
-                    `)}
-                </select>
-                <button type="submit" style="width:auto;">${t.btn_filter}</button>
-            </div>
+      <article style="padding: 1rem; margin-bottom: 2rem;">
+        <form method="GET" action="/admin/logs" style="margin: 0; display: flex; align-items: center; gap: 1rem;">
+            <label style="margin:0; white-space:nowrap; font-weight:600;">
+                ${t.label_filter_event}
+            </label>
+            <select name="event" style="width: auto; margin: 0; min-width: 250px;">
+                <option value="">${t.option_all_events}</option>
+                ${events.map(e => html`
+                    <option value="${e}" ${props.currentFilter === e ? 'selected' : ''}>
+                        ${(t as any)['event_' + e] || e}
+                    </option>
+                `)}
+            </select>
+            <button type="submit" style="width: auto; margin: 0; padding: 0.5rem 1rem;">${t.btn_filter}</button>
         </form>
-      </details>
+      </article>
 
       <figure>
         <table role="grid">
@@ -80,7 +80,7 @@ export const LogsPage = (props: Props) => {
               <tr>
                 <td>${new Date(log.created_at * 1000).toLocaleString()}</td>
                 <td>
-                    <small>${t['event_' + log.event_type] || log.event_type}</small>
+                    <small>${(t as any)['event_' + log.event_type] || log.event_type}</small>
                 </td>
                 <td style="font-size:0.9rem; color:#444;">
                     ${formatDetails(log.details)}
@@ -96,7 +96,7 @@ export const LogsPage = (props: Props) => {
             ${props.currentPage > 1 ? html`<a href="/admin/logs?page=${props.currentPage - 1}&event=${props.currentFilter}" role="button" class="outline">${t.pager_prev}</a>` : ''}
         </div>
         <div style="font-size:0.9rem; color:#666;">
-            ${t.pager_info.replace('{current}', props.currentPage).replace('{total}', props.totalPages).replace('{count}', props.totalCount)}
+            ${t.pager_info.replace('{current}', String(props.currentPage)).replace('{total}', String(props.totalPages)).replace('{count}', String(props.totalCount))}
         </div>
         <div>
             ${props.currentPage < props.totalPages ? html`<a href="/admin/logs?page=${props.currentPage + 1}&event=${props.currentFilter}" role="button" class="outline">${t.pager_next}</a>` : ''}
