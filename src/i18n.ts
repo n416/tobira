@@ -59,6 +59,7 @@ export const dict = {
     status_active: 'Active',
     status_inactive: 'Paused',
     confirm_delete_app: 'Are you sure? All permissions associated with this app will be permanently deleted.',
+    confirm_change_status: 'Change status for {name}?',
 
     // Groups
     section_groups: 'Affiliation Management',
@@ -79,6 +80,12 @@ export const dict = {
     no_affiliation: 'No Affiliation',
     confirm_delete_user: 'Are you sure you want to delete this user? This action cannot be undone.',
     confirm_revoke_permission: 'Are you sure you want to revoke this permission?',
+    confirm_overwrite: 'The following permissions will be overwritten with term {start} - {end}:\n{list}\n\nAre you sure?',
+
+    // Alerts (Validation / Error)
+    alert_select_app: 'Please select at least one application.',
+    alert_update_fail: 'Update failed: {message}',
+    alert_error: 'An error occurred: {message}',
 
     // Bulk & Permissions
     btn_bulk_mode: 'Bulk Edit Mode',
@@ -248,6 +255,7 @@ export const dict = {
     status_active: '稼働中',
     status_inactive: '停止中',
     confirm_delete_app: '本当に削除しますか？\nこのアプリに関連する全てのユーザー権限・所属権限も完全に削除されます。',
+    confirm_change_status: '{name} のステータスを変更しますか？',
 
     // Groups
     section_groups: '所属管理',
@@ -268,6 +276,12 @@ export const dict = {
     no_affiliation: '所属なし',
     confirm_delete_user: '本当にこのユーザーを削除しますか？\nこの操作は取り消せません。',
     confirm_revoke_permission: '本当にこの権限を取り消しますか？',
+    confirm_overwrite: '以下の権限が {start} ～ {end} で上書きされます。\n{list}\n\n本当に良いですか？',
+
+    // Alerts (Validation / Error)
+    alert_select_app: 'アプリを少なくとも1つ選択してください',
+    alert_update_fail: '更新に失敗しました: {message}',
+    alert_error: 'エラーが発生しました: {message}',
 
     // Bulk & Permissions
     btn_bulk_mode: '一括編集モード',

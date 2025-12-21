@@ -1,4 +1,4 @@
-import { html } from 'hono/html'
+import { html, raw } from 'hono/html'
 import { Layout } from './Layout'
 import { dict } from '../../i18n'
 import { App } from '../../types'
@@ -52,8 +52,15 @@ export const AppsPage = (props: Props) => {
       </dialog>
 
       <div class="app-list">
-        ${props.apps.map(app => html`
-          <div style="background: rgba(255,255,255,0.6); padding: 1.5rem; border-radius: 12px; margin-bottom: 1rem; border: 1px solid rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 1rem;">
+        ${props.apps.map((app, index) => {
+          // Zebra striping: Odd=White(0.95), Even=Translucent(0.6)
+          // Index 0 (1st item) is Odd visually
+          const bgStyle = index % 2 === 0 
+              ? 'background: rgba(255,255,255,0.95);' 
+              : 'background: rgba(255,255,255,0.6);';
+          
+          return html`
+          <div style="${bgStyle} padding: 1.5rem; border-radius: 12px; margin-bottom: 1rem; border: 1px solid rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 1rem;">
             
             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                 <div>
@@ -78,7 +85,7 @@ export const AppsPage = (props: Props) => {
                     <span class="material-symbols-outlined" style="font-size: 18px;">edit</span> ${t.edit}
                 </button>
 
-                <form method="POST" action="/admin/apps/toggle" style="margin:0;" onsubmit="return confirm('Toggle status?')">
+                <form method="POST" action="/admin/apps/toggle" style="margin:0;" onsubmit="return confirm('${(t.confirm_change_status || 'Change status?').replace('{name}', app.name)}')">
                     <input type="hidden" name="id" value="${app.id}" />
                     <input type="hidden" name="status" value="${app.status === 'inactive' ? 'active' : 'inactive'}" />
                     <button class="outline" style="padding: 0.4rem 0.8rem; font-size: 0.9rem; width: auto; display: inline-flex; align-items: center; gap: 0.3rem;">
@@ -99,7 +106,7 @@ export const AppsPage = (props: Props) => {
                 <article>
                   <header>
                     <div class="modal-title">${t.header_edit_app}</div>
-                    <a href="#close" aria-label="Close" class="close" onclick="this.closest('dialog').close()" role="button">
+                    <a href="#close" aria-label="Close" class="close" onclick="document.getElementById('edit-app-${app.id}').close()" role="button">
                         <span class="material-symbols-outlined">close</span>
                     </a>
                   </header>
@@ -119,7 +126,7 @@ export const AppsPage = (props: Props) => {
             </dialog>
 
           </div>
-        `)}
+        `})}
       </div>
     `
   })
