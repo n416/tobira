@@ -3,7 +3,7 @@ export type Language = 'en' | 'ja'
 export const dict = {
   en: {
     lang: 'en',
-    tobira_admin: 'Tobira Admin',
+    tobira_admin: 'Admin Panel',
     title_login: 'Login',
     title_dashboard: 'Admin Dashboard',
     title_user_dashboard: 'My Dashboard',
@@ -157,7 +157,7 @@ export const dict = {
     log_bulk_update: 'Bulk update by {admin} ({count} users). Group: {group}, App: {app}',
     log_password_change: 'User {email} changed password.',
 
-    welcome: 'Welcome to Tobira',
+    welcome: 'Welcome',
     setup_desc: 'Setup password for',
     reset_desc: 'Reset password for',
     label_new_password: 'New Password',
@@ -180,6 +180,13 @@ export const dict = {
     stat_apps: 'Applications',
     stat_users: 'Users',
     stat_logs: 'Logs',
+
+    // Config
+    config_change_name: 'Change System Name',
+    label_app_name_ja: 'System Name (Japanese)',
+    label_app_name_en: 'System Name (English)',
+    label_app_subtitle_ja: 'Subtitle (Japanese)',
+    label_app_subtitle_en: 'Subtitle (English)',
   },
   ja: {
     lang: 'ja',
@@ -190,7 +197,7 @@ export const dict = {
     title_forgot: 'パスワードリセット',
     title_change_password: 'パスワード変更',
 
-    tobira_admin: 'Tobira 管理画面',
+    tobira_admin: '管理画面',
 
     nav_home: 'ホーム',
     nav_apps: 'アプリ管理',
@@ -338,7 +345,7 @@ export const dict = {
     log_bulk_update: '一括更新 ({count}名) 実行: {admin} | 所属: {group}, アプリ: {app}',
     log_password_change: 'ユーザー {email} がパスワードを変更しました',
 
-    welcome: 'Tobira へようこそ',
+    welcome: 'ようこそ',
     setup_desc: 'パスワードを設定します:',
     reset_desc: 'パスワードを再設定します:',
     label_new_password: '新しいパスワード',
@@ -361,5 +368,12 @@ export const dict = {
     stat_apps: '登録アプリ数',
     stat_users: '登録ユーザー数',
     stat_logs: '総ログ数',
+
+    // Config
+    config_change_name: 'システム名称変更',
+    label_app_name_ja: 'システム名 (日本語)',
+    label_app_name_en: 'システム名 (英語)',
+    label_app_subtitle_ja: '副題 (日本語)',
+    label_app_subtitle_en: '副題 (英語)',
   }
 }

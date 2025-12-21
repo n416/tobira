@@ -1,6 +1,7 @@
 import { html } from 'hono/html'
 import { Layout } from './Layout'
 import { dict } from '../../i18n'
+import { SystemConfig } from '../../types'
 
 interface Props {
   t: typeof dict.en
@@ -10,19 +11,18 @@ interface Props {
   totalPages: number
   totalCount: number
   currentFilter: string
+  siteName: string
+  appConfig: SystemConfig
 }
 
 export const LogsPage = (props: Props) => {
   const t = props.t
 
-  // Helper to parse details JSON safely
   const formatDetails = (jsonStr: string) => {
     try {
       const obj = JSON.parse(jsonStr);
-      // If the object has a "key" for translation, use it
       if (obj.key && (t as any)[obj.key]) {
         let msg = (t as any)[obj.key];
-        // Replace params
         if (obj.params) {
           for (const k in obj.params) {
             msg = msg.replace('{' + k + '}', obj.params[k]);
@@ -46,6 +46,8 @@ export const LogsPage = (props: Props) => {
     t: t,
     userEmail: props.userEmail,
     activeTab: 'logs',
+    siteName: props.siteName,
+    appConfig: props.appConfig,
     children: html`
       <h2>${t.section_logs}</h2>
       

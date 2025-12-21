@@ -49,3 +49,13 @@ export interface AuthCode {
   expires_at: number
   used_at?: number
 }
+
+export interface LocalizedText {
+  ja: string
+  en: string
+}
+
+export interface SystemConfig {
+  appName: LocalizedText
+  appSubtitle: LocalizedText
+}

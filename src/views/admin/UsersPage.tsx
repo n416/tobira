@@ -2,7 +2,7 @@ import { html, raw } from 'hono/html'
 import { css, keyframes } from 'hono/css'
 import { Layout } from './Layout'
 import { dict } from '../../i18n'
-import { User, App, Group } from '../../types'
+import { User, App, Group, SystemConfig } from '../../types'
 import { Modal } from '../components/Modal'
 import { Button } from '../components/Button'
 import { MultiSelect } from '../components/MultiSelect'
@@ -15,6 +15,8 @@ interface Props {
     groups: Group[]
     inviteUrl?: string
     error?: string
+    siteName: string
+    appConfig: SystemConfig
 }
 
 export const UsersPage = (props: Props) => {
@@ -243,8 +245,8 @@ export const UsersPage = (props: Props) => {
                     }
                 });
                 if (warningMessages.length > 0) {
-                    var msgTemplate = i18n.msgOverwriteConfirm || 'Overwrite?\\n{list}';
-                    var listStr = warningMessages.join('\\n');
+                    var msgTemplate = i18n.msgOverwriteConfirm || 'Overwrite?\\\\n{list}';
+                    var listStr = warningMessages.join('\\\\n');
                     var msg = msgTemplate.replace('{start}', dateStrStart).replace('{end}', dateStrEnd).replace('{list}', listStr);
                     if (!confirm(msg)) return;
                 }
@@ -410,6 +412,8 @@ export const UsersPage = (props: Props) => {
         t: t,
         userEmail: props.userEmail,
         activeTab: 'users',
+        siteName: props.siteName,
+        appConfig: props.appConfig,
         children: html`
       <div class="${pageWrapper}">
           <div class="grid">

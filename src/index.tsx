@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
 import { csrf } from 'hono/csrf'
-import { Env, User, App, Session, Permission, Group, AuthCode } from './types'
+import { Env, User, App, Session, Permission, Group, AuthCode, SystemConfig, LocalizedText } from './types'
 import { verifyPassword, hashPassword, generateToken, getCookieOptions } from './utils/auth'
 import { sendEmail } from './utils/mail'
 import { Login } from './views/Login'
@@ -26,6 +26,32 @@ app.use(csrf())
 const getLang = (c: any) => {
     const accept = c.req.header('Accept-Language') || ''
     return accept.includes('ja') ? dict.ja : dict.en
+}
+
+async function getSystemConfig(db: D1Database): Promise<SystemConfig> {
+  const config: SystemConfig = { 
+      appName: { ja: 'Tobira', en: 'Tobira' },
+      appSubtitle: { ja: 'Secure Identity Provider', en: 'Secure Identity Provider' }
+  };
+  try {
+    const { results } = await db.prepare('SELECT * FROM system_config').all<{ key: string, value: string }>();
+    if (results) {
+        results.forEach(r => {
+            if (r.key === 'app_name_ja') config.appName.ja = r.value;
+            if (r.key === 'app_name_en') config.appName.en = r.value;
+            if (r.key === 'app_subtitle_ja') config.appSubtitle.ja = r.value;
+            if (r.key === 'app_subtitle_en') config.appSubtitle.en = r.value;
+        });
+    }
+  } catch(e) {
+      console.error('Config fetch failed:', e);
+  }
+  return config;
+}
+
+function getLocalizedValue(c: any, text: LocalizedText): string {
+    const accept = c.req.header('Accept-Language') || ''
+    return accept.includes('ja') ? text.ja : text.en
 }
 
 // ------------------------------------------------------------------
@@ -83,6 +109,9 @@ app.get('/', async (c) => {
     try {
         const t = getLang(c)
         const user = await getUser(c)
+        const config = await getSystemConfig(c.env.DB)
+        const siteName = getLocalizedValue(c, config.appName)
+
         if (!user) return c.redirect('/login')
 
         const now = Math.floor(Date.now() / 1000)
@@ -95,7 +124,7 @@ app.get('/', async (c) => {
           ((up.valid_from <= ? AND up.valid_to >= ?) OR (up.id IS NULL AND gp.valid_from <= ? AND gp.valid_to >= ?))
       `).bind(user.id, user.group_id || null, now, now, now, now).all()
 
-        return c.html(<UserDashboard t={t} userEmail={user.email} apps={apps as any} />)
+        return c.html(<UserDashboard t={t} userEmail={user.email} apps={apps as any} siteName={siteName} />)
     } catch (e: any) {
         return c.json({ error: e.message, stack: e.stack }, 500)
     }
@@ -103,6 +132,9 @@ app.get('/', async (c) => {
 
 app.get('/login', async (c) => {
     const t = getLang(c)
+    const config = await getSystemConfig(c.env.DB)
+    const siteName = getLocalizedValue(c, config.appName)
+    const siteSubtitle = getLocalizedValue(c, config.appSubtitle)
     const redirectTo = c.req.query('redirect_to')
     const msgKey = c.req.query('msg')
     // @ts-ignore
@@ -115,11 +147,14 @@ app.get('/login', async (c) => {
         return c.redirect(admin ? '/admin' : '/')
     }
 
-    return c.html(<Login t={t} redirectTo={redirectTo} message={message} />)
+    return c.html(<Login t={t} redirectTo={redirectTo} message={message} siteName={siteName} siteSubtitle={siteSubtitle} />)
 })
 
 app.post('/login', async (c) => {
     const t = getLang(c)
+    const config = await getSystemConfig(c.env.DB)
+    const siteName = getLocalizedValue(c, config.appName)
+    const siteSubtitle = getLocalizedValue(c, config.appSubtitle)
     const body = await c.req.parseBody()
     const email = body['email'] as string
     const password = body['password'] as string
@@ -127,7 +162,7 @@ app.post('/login', async (c) => {
 
     const user = await c.env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first<User>()
     if (!user || !(await verifyPassword(password, user.password_hash))) {
-        return c.html(<Login t={t} redirectTo={redirectTo} error={t.error_credentials} />)
+        return c.html(<Login t={t} redirectTo={redirectTo} error={t.error_credentials} siteName={siteName} siteSubtitle={siteSubtitle} />)
     }
 
     const sessionId = generateToken()
@@ -257,24 +292,28 @@ app.get('/admin', async (c) => {
     const user = await getAdmin(c)
     if (!user) return c.redirect('/login')
     const t = getLang(c)
+    const config = await getSystemConfig(c.env.DB)
+    const siteName = getLocalizedValue(c, config.appName)
     const stats = {
         apps: await c.env.DB.prepare('SELECT COUNT(*) as c FROM apps').first('c'),
         users: await c.env.DB.prepare('SELECT COUNT(*) as c FROM users').first('c'),
         logs: await c.env.DB.prepare('SELECT COUNT(*) as c FROM audit_logs').first('c'),
     }
-    return c.html(<AdminHome t={t} userEmail={user.email} stats={stats as any} />)
+    return c.html(<AdminHome t={t} userEmail={user.email} stats={stats as any} siteName={siteName} appConfig={config} />)
 })
 app.get('/admin/apps', async (c) => {
     const user = await getAdmin(c)
     if (!user) return c.redirect('/login')
+    const config = await getSystemConfig(c.env.DB)
+    const siteName = getLocalizedValue(c, config.appName)
     const { results } = await c.env.DB.prepare('SELECT * FROM apps ORDER BY created_at DESC').all()
-    return c.html(<AppsPage t={getLang(c)} userEmail={user.email} apps={results as any} />)
+    return c.html(<AppsPage t={getLang(c)} userEmail={user.email} apps={results as any} siteName={siteName} appConfig={config} />)
 })
 app.post('/admin/apps', async (c) => {
     const user = await getAdmin(c)
     if (!user) return c.redirect('/login')
     const body = await c.req.parseBody()
-    const now = Math.floor(Date.now() / 1000) // FIXED: Add created_at
+    const now = Math.floor(Date.now() / 1000)
     await c.env.DB.prepare('INSERT INTO apps (id, name, base_url, status, created_at) VALUES (?, ?, ?, ?, ?)')
         .bind(body['id'], body['name'], body['base_url'], 'active', now).run()
     const details = JSON.stringify({ key: 'log_app_created', params: { appName: body['name'], id: body['id'], admin: user.email } });
@@ -323,11 +362,13 @@ app.get('/admin/groups', async (c) => {
     try {
         const user = await getAdmin(c)
         if (!user) return c.redirect('/login')
+        const config = await getSystemConfig(c.env.DB)
+        const siteName = getLocalizedValue(c, config.appName)
         const groups = await c.env.DB.prepare('SELECT * FROM groups ORDER BY created_at DESC').all()
         const apps = await c.env.DB.prepare('SELECT * FROM apps').all()
         if (!groups.success) throw new Error('Groups DB Error: ' + groups.error)
         if (!apps.success) throw new Error('Apps DB Error: ' + apps.error)
-        return c.html(<GroupsPage t={getLang(c)} userEmail={user.email} groups={groups.results as any} apps={apps.results as any} />)
+        return c.html(<GroupsPage t={getLang(c)} userEmail={user.email} groups={groups.results as any} apps={apps.results as any} siteName={siteName} appConfig={config} />)
     } catch (e: any) {
         return c.text('Error: ' + e.message + '\n' + e.stack, 500)
     }
@@ -337,7 +378,7 @@ app.post('/admin/groups', async (c) => {
     if (!user) return c.redirect('/login')
     const body = await c.req.parseBody()
     const id = crypto.randomUUID()
-    const now = Math.floor(Date.now() / 1000) // FIXED: Add created_at
+    const now = Math.floor(Date.now() / 1000)
     await c.env.DB.prepare('INSERT INTO groups (id, name, created_at) VALUES (?, ?, ?)').bind(id, body['name'], now).run()
     return c.redirect('/admin/groups')
 })
@@ -360,10 +401,12 @@ app.post('/admin/groups/delete', async (c) => {
 app.get('/admin/users', async (c) => {
     const user = await getAdmin(c)
     if (!user) return c.redirect('/login')
+    const config = await getSystemConfig(c.env.DB)
+    const siteName = getLocalizedValue(c, config.appName)
     const users = await c.env.DB.prepare('SELECT * FROM users ORDER BY created_at DESC').all()
     const apps = await c.env.DB.prepare('SELECT * FROM apps').all()
     const groups = await c.env.DB.prepare('SELECT * FROM groups').all()
-    return c.html(<UsersPage t={getLang(c)} userEmail={user.email} users={users.results as any} apps={apps.results as any} groups={groups.results as any} inviteUrl={c.req.query('invite_url')} error={c.req.query('error')} />)
+    return c.html(<UsersPage t={getLang(c)} userEmail={user.email} users={users.results as any} apps={apps.results as any} groups={groups.results as any} inviteUrl={c.req.query('invite_url')} error={c.req.query('error')} siteName={siteName} appConfig={config} />)
 })
 app.post('/admin/invite', async (c) => {
     const user = await getAdmin(c)
@@ -424,7 +467,7 @@ app.post('/admin/users/bulk', async (c) => {
     if (appId) {
         const start = Math.floor(Date.now() / 1000)
         const end = start + 31536000
-        const now = Math.floor(Date.now() / 1000) // FIXED: Add created_at
+        const now = Math.floor(Date.now() / 1000)
         for (const uid of ids) {
             await c.env.DB.prepare(`
                 INSERT INTO permissions (user_id, app_id, valid_from, valid_to, created_at) VALUES (?, ?, ?, ?, ?)
@@ -508,7 +551,7 @@ app.post('/admin/api/user/permission/grant', async (c) => {
     const validFrom = body['valid_from'] || Math.floor(Date.now() / 1000)
     const targets = Array.isArray(appIds) ? appIds : [appId]
     const appNames = [];
-    const now = Math.floor(Date.now() / 1000) // FIXED: Add created_at
+    const now = Math.floor(Date.now() / 1000)
     for (const aid of targets) {
         if (!aid) continue
         await c.env.DB.prepare(`
@@ -543,7 +586,7 @@ app.post('/admin/api/group/permission/grant', async (c) => {
     const validFrom = body['valid_from'] || Math.floor(Date.now() / 1000)
     const targets = Array.isArray(appIds) ? appIds : []
     const appNames = [];
-    const now = Math.floor(Date.now() / 1000) // FIXED: Add created_at
+    const now = Math.floor(Date.now() / 1000)
     for (const aid of targets) {
         if (!aid) continue
         await c.env.DB.prepare(`
@@ -572,6 +615,8 @@ app.post('/admin/api/group/permission/revoke', async (c) => {
 app.get('/admin/logs', async (c) => {
     const user = await getAdmin(c)
     if (!user) return c.redirect('/login')
+    const config = await getSystemConfig(c.env.DB)
+    const siteName = getLocalizedValue(c, config.appName)
     const page = parseInt(c.req.query('page') || '1');
     const filterEvent = c.req.query('event') || '';
     const pageSize = 50;
@@ -600,6 +645,8 @@ app.get('/admin/logs', async (c) => {
         totalPages={totalPages}
         totalCount={totalCount}
         currentFilter={filterEvent}
+        siteName={siteName}
+        appConfig={config}
     />)
 })
 
@@ -697,6 +744,38 @@ app.post('/reset-password', async (c) => {
     try { await c.env.DB.prepare('DELETE FROM app_sessions WHERE user_id = ?').bind(reset.user_id).run() } catch (e) { }
     await c.env.DB.prepare('DELETE FROM password_resets WHERE token = ?').bind(token).run()
     return c.redirect('/login')
+})
+
+app.post('/admin/config', async (c) => {
+    const user = await getAdmin(c)
+    if (!user) return c.redirect('/login')
+    const body = await c.req.parseBody()
+    const app_name_ja = body['app_name_ja'] as string
+    const app_name_en = body['app_name_en'] as string
+    const app_subtitle_ja = body['app_subtitle_ja'] as string
+    const app_subtitle_en = body['app_subtitle_en'] as string
+
+    if (app_name_ja) {
+        await c.env.DB.prepare('INSERT INTO system_config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=?')
+            .bind('app_name_ja', app_name_ja, app_name_ja).run()
+    }
+    if (app_name_en) {
+        await c.env.DB.prepare('INSERT INTO system_config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=?')
+            .bind('app_name_en', app_name_en, app_name_en).run()
+    }
+    if (app_subtitle_ja) {
+        await c.env.DB.prepare('INSERT INTO system_config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=?')
+            .bind('app_subtitle_ja', app_subtitle_ja, app_subtitle_ja).run()
+    }
+    if (app_subtitle_en) {
+        await c.env.DB.prepare('INSERT INTO system_config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=?')
+            .bind('app_subtitle_en', app_subtitle_en, app_subtitle_en).run()
+    }
+
+    const details = JSON.stringify({ key: 'log_config_update', params: { admin: user.email } });
+    await c.env.DB.prepare('INSERT INTO audit_logs (event_type, details) VALUES (?, ?)').bind('CONFIG_UPDATE', details).run()
+
+    return c.redirect('/admin')
 })
 
 export default app

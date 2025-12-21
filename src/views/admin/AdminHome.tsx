@@ -1,11 +1,14 @@
 import { html } from 'hono/html'
 import { Layout } from './Layout'
 import { dict } from '../../i18n'
+import { SystemConfig } from '../../types'
 
 interface Props {
   t: typeof dict.en
   userEmail: string
   stats: { apps: number, users: number, logs: number }
+  siteName: string
+  appConfig: SystemConfig
 }
 
 export const AdminHome = (props: Props) => {
@@ -14,6 +17,8 @@ export const AdminHome = (props: Props) => {
     t: t,
     userEmail: props.userEmail,
     activeTab: 'home',
+    siteName: props.siteName,
+    appConfig: props.appConfig,
     children: html`
       <hgroup>
         <h2>${t.title_dashboard}</h2>

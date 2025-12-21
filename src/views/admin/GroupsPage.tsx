@@ -1,8 +1,8 @@
 import { html, raw } from 'hono/html'
-import { css, keyframes } from 'hono/css'
+import { css } from 'hono/css'
 import { Layout } from './Layout'
 import { dict } from '../../i18n'
-import { Group, App } from '../../types'
+import { Group, App, SystemConfig } from '../../types'
 import { Modal } from '../components/Modal'
 import { Button } from '../components/Button'
 import { MultiSelect } from '../components/MultiSelect'
@@ -12,6 +12,8 @@ interface Props {
   userEmail: string
   groups: Group[]
   apps: App[]
+  siteName: string
+  appConfig: SystemConfig
 }
 
 export const GroupsPage = (props: Props) => {
@@ -61,16 +63,10 @@ export const GroupsPage = (props: Props) => {
             if(validFrom) validFrom.value = new Date().toISOString().split('T')[0];
             var validTo = document.getElementById('g-perm-valid-to');
             if(validTo) validTo.value = '';
-            
             window.resetGrantButton();
-
             window.loadGroupPerms(id);
         };
-        window.closeGroupModal = function() { 
-            if(gModal) gModal.close(); 
-            window.resetGrantButton();
-        };
-        
+        window.closeGroupModal = function() { if(gModal) gModal.close(); window.resetGrantButton(); };
         window.resetGrantButton = function() {
             var btn = document.getElementById('btn-grant-perm');
             if(btn) { btn.innerHTML = '<span class="material-symbols-outlined">add</span> <span>' + (i18n.btnGrant || 'Grant') + '</span>'; }
@@ -78,14 +74,12 @@ export const GroupsPage = (props: Props) => {
             if(card) { card.classList.remove('blink-active'); }
             if(tsControl) { tsControl.clear(); tsControl.refreshOptions(); }
         };
-
         window.highlightGrantForm = function() {
             var btn = document.getElementById('btn-grant-perm');
             if(btn) { 
                 btn.innerHTML = '<span class="material-symbols-outlined">edit</span> <span>' + (i18n.btnChange || 'Change') + '</span>'; 
                 btn.scrollIntoView({ behavior: 'smooth', block: 'center' }); 
             }
-            
             var card = document.getElementById('grant-form-card');
             if(card) { 
                 card.classList.remove('blink-active'); 
@@ -93,7 +87,6 @@ export const GroupsPage = (props: Props) => {
                 card.classList.add('blink-active'); 
             }
         };
-
         window.editGroupPerm = function(appId, startTs, endTs) {
             if (tsControl) { tsControl.setValue([appId]); }
             var validFrom = document.getElementById('g-perm-valid-from');
@@ -105,7 +98,6 @@ export const GroupsPage = (props: Props) => {
             }
             window.highlightGrantForm();
         };
-
         window.loadGroupPerms = function(id) {
             fetch('/admin/api/group-details/' + id + '?t=' + new Date().getTime())
                 .then(function(r) { return r.json(); })
@@ -163,14 +155,12 @@ export const GroupsPage = (props: Props) => {
                 right.style.gap = '0.5rem';
                 right.style.alignItems = 'center';
                 
-                // Edit Button
                 var btnEdit = document.createElement('button');
                 btnEdit.className = 'action-btn';
                 btnEdit.innerHTML = '<span class="material-symbols-outlined">edit</span>';
                 btnEdit.onclick = function() { window.editGroupPerm(p.app_id, p.valid_from, p.valid_to); };
                 right.appendChild(btnEdit);
 
-                // Revoke Button
                 var btnRevoke = document.createElement('button');
                 btnRevoke.className = 'action-btn delete';
                 btnRevoke.innerHTML = '<span class="material-symbols-outlined">delete</span>';
@@ -203,18 +193,15 @@ export const GroupsPage = (props: Props) => {
                 }
             });
             if (warningMessages.length > 0) {
-                var msgTemplate = i18n.msgOverwriteConfirm || 'Overwrite?\\n{list}';
-                var listStr = warningMessages.join('\\n');
+                var msgTemplate = i18n.msgOverwriteConfirm || 'Overwrite?\\\\n{list}';
+                var listStr = warningMessages.join('\\\\n');
                 var msg = msgTemplate.replace('{start}', dateStrStart).replace('{end}', dateStrEnd).replace('{list}', listStr);
                 if (!confirm(msg)) return;
             }
             var validTo = dateVal ? Math.floor(new Date(dateVal).getTime()/1000) : Math.floor(Date.now()/1000) + 315360000;
             var validFrom = startVal ? Math.floor(new Date(startVal).getTime()/1000) : Math.floor(Date.now()/1000);
             fetch('/admin/api/group/permission/grant', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ group_id: currentGroupId, app_ids: appIds, valid_from: validFrom, valid_to: validTo }) })
-            .then(function() { 
-                window.loadGroupPerms(currentGroupId); 
-                window.resetGrantButton(); 
-            });
+            .then(function() { window.loadGroupPerms(currentGroupId); if(tsControl) tsControl.clear(); });
         };
         window.revokeGroupPerm = function(pid) {
             if(!confirm(i18n.msgRevoke || 'Revoke?')) return;
@@ -229,12 +216,6 @@ export const GroupsPage = (props: Props) => {
         };
     })();
   `);
-
-  const blinkActive = keyframes`
-        0% { border-color: #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
-        50% { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.2); }
-        100% { border-color: #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
-  `
 
   const listGrid = css`display: flex; flex-direction: column; gap: 1rem;`
   
@@ -284,9 +265,6 @@ export const GroupsPage = (props: Props) => {
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     margin-bottom: 2rem;
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
-    &.blink-active {
-        animation: ${blinkActive} 1s ease-in-out 3;
-    }
   `
   
   const formLabel = css`
@@ -327,6 +305,8 @@ export const GroupsPage = (props: Props) => {
     t: t,
     userEmail: props.userEmail,
     activeTab: 'groups',
+    siteName: props.siteName,
+    appConfig: props.appConfig,
     children: html`
       <div class="${pageWrapper}">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
@@ -366,7 +346,7 @@ export const GroupsPage = (props: Props) => {
                     <div class="${itemTitle}">${g.name}</div>
                 </div>
                 <div>
-                    <form method="POST" action="/admin/groups/delete" style="margin:0;" onsubmit="return confirm('${t.confirm_delete_group.replace(/\n/g, '\\n')}')" onclick="event.stopPropagation()">
+                    <form method="POST" action="/admin/groups/delete" style="margin:0;" onsubmit="return confirm('${t.confirm_delete_group.replace(/\\n/g, '\\\\n')}')" onclick="event.stopPropagation()">
                          <input type="hidden" name="id" value="${g.id}" />
                          <button class="${deleteBtn}" title="${t.delete}">
                             <span class="material-symbols-outlined">delete</span>

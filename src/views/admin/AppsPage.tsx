@@ -1,8 +1,8 @@
 import { html, raw } from 'hono/html'
-import { css } from 'hono/css'
+import { css, keyframes } from 'hono/css'
 import { Layout } from './Layout'
 import { dict } from '../../i18n'
-import { App } from '../../types'
+import { App, SystemConfig } from '../../types'
 import { Modal } from '../components/Modal'
 import { Button } from '../components/Button'
 
@@ -10,6 +10,8 @@ interface Props {
   t: typeof dict.en
   userEmail: string
   apps: App[]
+  siteName: string
+  appConfig: SystemConfig
 }
 
 export const AppsPage = (props: Props) => {
@@ -17,7 +19,6 @@ export const AppsPage = (props: Props) => {
   const scriptContent = raw(`
         (function() {
             var editModal = document.getElementById('edit-app-modal');
-            
             window.openEditAppModal = function(id, name, baseUrl) {
                 if(!editModal) return;
                 var form = editModal.querySelector('form');
@@ -25,13 +26,11 @@ export const AppsPage = (props: Props) => {
                 form.querySelector('input[name="name"]').value = name;
                 form.querySelector('input[name="base_url"]').value = baseUrl;
                 editModal.showModal();
-                
                 setTimeout(function() {
                     var closeBtn = document.getElementById('edit-close-btn');
                     if(closeBtn) closeBtn.focus();
                 }, 50);
             };
-            
             window.closeEditAppModal = function() {
                 if(editModal) editModal.close();
             };
@@ -84,6 +83,8 @@ export const AppsPage = (props: Props) => {
     t: t,
     userEmail: props.userEmail,
     activeTab: 'apps',
+    siteName: props.siteName,
+    appConfig: props.appConfig,
     children: html`
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
         <h2 style="margin-bottom: 0;">${t.section_apps}</h2>
@@ -138,7 +139,7 @@ export const AppsPage = (props: Props) => {
             </div>
             
             <div style="display: flex; gap: 0.5rem; align-items: center;">
-                <form method="POST" action="/admin/apps/toggle" style="margin:0;" onsubmit="return confirm('${(t.confirm_change_status || 'Change status?').replace('{name}', app.name).replace(/\n/g, '\\n')}')" onclick="event.stopPropagation()">
+                <form method="POST" action="/admin/apps/toggle" style="margin:0;" onsubmit="return confirm('${(t.confirm_change_status || 'Change status?').replace('{name}', app.name).replace(/\\n/g, '\\\\n')}')" onclick="event.stopPropagation()">
                     <input type="hidden" name="id" value="${app.id}" />
                     <input type="hidden" name="status" value="${app.status === 'inactive' ? 'active' : 'inactive'}" />
                     <button class="${actionBtn}" title="${app.status === 'inactive' ? t.btn_resume : t.btn_pause}">
@@ -146,7 +147,7 @@ export const AppsPage = (props: Props) => {
                     </button>
                 </form>
                 
-                <form method="POST" action="/admin/apps/delete" style="margin:0;" onsubmit="return confirm('${t.confirm_delete_app.replace(/\n/g, '\\n')}')" onclick="event.stopPropagation()">
+                <form method="POST" action="/admin/apps/delete" style="margin:0;" onsubmit="return confirm('${t.confirm_delete_app.replace(/\\n/g, '\\\\n')}')" onclick="event.stopPropagation()">
                     <input type="hidden" name="id" value="${app.id}" />
                     <button class="${deleteBtn}" title="${t.delete}">
                         <span class="material-symbols-outlined">delete</span>

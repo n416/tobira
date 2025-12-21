@@ -10,6 +10,7 @@ interface Props {
   t: typeof dict.en
   userEmail: string
   apps: App[]
+  siteName: string
 }
 
 export const UserDashboard = (props: Props) => {
@@ -109,11 +110,12 @@ export const UserDashboard = (props: Props) => {
 
   return Layout({
     title: t.title_user_dashboard,
+    siteName: props.siteName,
     lang: t.lang,
     width: 800, 
     children: html`
         <header class="${headerClass}">
-            <div class="${brandClass}">Tobira</div>
+            <div class="${brandClass}">${props.siteName}</div>
             <div class="${userNavClass}">
                 <span class="${userEmailClass}">${props.userEmail}</span>
                 <a href="/logout" class="${logoutBtnClass}">${t.logout}</a>

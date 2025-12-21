@@ -7,6 +7,8 @@ interface Props {
   redirectTo?: string
   error?: string
   message?: string
+  siteName: string
+  siteSubtitle: string
 }
 
 export const Login = (props: Props) => {
@@ -131,7 +133,7 @@ export const Login = (props: Props) => {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>${t.title_login} - Tobira</title>
+      <title>${t.title_login} - ${props.siteName}</title>
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
@@ -174,8 +176,10 @@ export const Login = (props: Props) => {
       <div class="${containerClass}">
         <div class="${cardClass}">
             <div style="text-align: center; margin-bottom: 2rem;">
-                <h1 class="${logoTextClass}">Tobira</h1>
-                <span style="display: block; font-size: 0.875rem; color: var(--text-sub); margin-top: 0.25rem; font-weight: 500; letter-spacing: 0.02em;">Secure Identity Provider</span>
+                <h1 class="${logoTextClass}">${props.siteName}</h1>
+                <span style="display: block; font-size: 0.875rem; color: var(--text-sub); margin-top: 0.25rem; font-weight: 500; letter-spacing: 0.02em;">
+                    ${props.siteSubtitle}
+                </span>
             </div>
             
             ${props.error ? html`<div class="error-message">${props.error}</div>` : ''}

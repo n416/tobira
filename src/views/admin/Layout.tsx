@@ -1,12 +1,17 @@
-import { html } from 'hono/html'
+import { html, raw } from 'hono/html'
 import { css, Style } from 'hono/css'
 import { dict } from '../../i18n'
+import { SystemConfig } from '../../types'
+import { Modal } from '../components/Modal'
+import { Button } from '../components/Button'
 
 interface LayoutProps {
     t: typeof dict.en
     userEmail: string
     activeTab: string
     children: any
+    siteName: string
+    appConfig: SystemConfig
 }
 
 export const Layout = (props: LayoutProps) => {
@@ -48,12 +53,27 @@ export const Layout = (props: LayoutProps) => {
 
         & h1 {
             font-size: 1.5rem; 
-            margin-bottom: 2.5rem; 
+            margin-bottom: 0.25rem;
             background: linear-gradient(135deg, #4f46e5 0%, #2563eb 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             font-weight: 800; 
             text-align: center; 
+        }
+        
+        & .config-link {
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 0.75rem;
+        }
+        & .config-link a {
+            color: #94a3b8;
+            text-decoration: none;
+            border-bottom: 1px dashed #cbd5e1;
+        }
+        & .config-link a:hover {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
         }
 
         @media (max-width: 768px) {
@@ -129,74 +149,35 @@ export const Layout = (props: LayoutProps) => {
         @media (max-width: 768px) { display: flex; padding: 0; }
     `
 
-    // General Overrides for Pico/Base
+    // General Overrides
     const globalOverrides = html`
       <style>
-        :root {
-            --primary: #4f46e5;
-            --primary-hover: #4338ca;
-            --text-main: #0f172a;
-            --text-sub: #64748b;
-        }
+        :root { --primary: #4f46e5; --primary-hover: #4338ca; --text-main: #0f172a; --text-sub: #64748b; }
         address, blockquote, dl, figure, form, ol, p, pre, table, ul { margin-bottom: 0; }
-        body {
-            font-family: 'Inter', 'Noto Sans JP', sans-serif;
-            min-height: 100vh;
-            background: linear-gradient(135deg, #f0f4ff 0%, #c7d2fe 50%, #e0e7ff 100%);
-            background-size: 200% 200%;
-            animation: gradient-animation 15s ease infinite;
-            color: var(--text-main);
-            margin: 0; padding: 0;
-        }
+        body { font-family: 'Inter', sans-serif; min-height: 100vh; background: linear-gradient(135deg, #f0f4ff 0%, #c7d2fe 50%, #e0e7ff 100%); background-size: 200% 200%; animation: gradient-animation 15s ease infinite; color: var(--text-main); margin: 0; padding: 0; }
         button, input, select, textarea { font-family: inherit; }
         .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; font-size: 20px; vertical-align: text-bottom; line-height: 1; }
         @keyframes gradient-animation { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-
-        /* Pico Override */
-        article {
-            background: rgba(255, 255, 255, 0.7) !important;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.6);
-            border-radius: 16px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-        }
-        button {
-            background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 0.75rem 1.5rem;
-            margin-bottom: 0; 
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
-            display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
-        }
+        
+        article { background: rgba(255, 255, 255, 0.7) !important; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.6); border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        button { background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%); color: white; border: none; border-radius: 12px; padding: 0.75rem 1.5rem; margin-bottom: 0; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2); display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
         button:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3); background: linear-gradient(135deg, #4338ca 0%, #3730a3 100%); }
         button:active { transform: translateY(0); }
         button.contrast, button.secondary, button.outline { background: transparent !important; border: 1px solid #cbd5e1; color: var(--text-sub); box-shadow: none; }
         button.contrast:hover, button.secondary:hover, button.outline:hover { background: rgba(255, 255, 255, 0.5) !important; color: var(--primary); border-color: var(--primary); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
-
-        input:not([type="checkbox"]):not([type="radio"]), select {
-            width: 100%; padding: 0.8rem 1rem; margin-bottom: 0; 
-            border: 1px solid #cbd5e1 !important; background: rgba(255, 255, 255, 0.9) !important; 
-            border-radius: 12px !important; font-size: 1rem; color: var(--text-main); transition: all 0.3s ease; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); 
-        }
-        input:not([type="checkbox"]):not([type="radio"]):focus, select:focus {
-            background: #fff !important; border-color: var(--primary) !important; box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1) !important; outline: none;
-        }
+        input:not([type="checkbox"]):not([type="radio"]), select { width: 100%; padding: 0.8rem 1rem; margin-bottom: 0; border: 1px solid #cbd5e1 !important; background: rgba(255, 255, 255, 0.9) !important; border-radius: 12px !important; font-size: 1rem; color: var(--text-main); transition: all 0.3s ease; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+        input:not([type="checkbox"]):not([type="radio"]):focus, select:focus { background: #fff !important; border-color: var(--primary) !important; box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1) !important; outline: none; }
         table { border-collapse: separate; border-spacing: 0 0.5rem; }
         th { border-bottom: none; color: var(--text-sub); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.5rem 1rem; }
         td { background: rgba(255,255,255,0.4); border-top: 1px solid rgba(255,255,255,0.5); border-bottom: 1px solid rgba(255,255,255,0.5); padding: 1rem; vertical-align: middle; }
         td:first-child { border-top-left-radius: 12px; border-bottom-left-radius: 12px; border-left: 1px solid rgba(255,255,255,0.5); }
         td:last-child { border-top-right-radius: 12px; border-bottom-right-radius: 12px; border-right: 1px solid rgba(255,255,255,0.5); }
-
-        /* Sidebar Overlay */
         .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(2px); z-index: 90; }
         @media (max-width: 768px) { .sidebar-overlay.visible { display: block; } }
       </style>
     `
+
+    const formLabel = css`display: block; font-weight: 700; font-size: 0.95rem; color: #1e293b; margin-bottom: 0.5rem;`
 
     return html`
     <!DOCTYPE html>
@@ -226,7 +207,10 @@ export const Layout = (props: LayoutProps) => {
       </button>
       <div class="${wrapperClass}">
         <aside class="sidebar ${sidebarClass}">
-            <h1>tobira</h1>
+            <h1>${props.siteName}</h1>
+            <div class="config-link">
+                <a href="#" onclick="document.getElementById('config-modal').showModal()">${t.config_change_name || 'Change Name'}</a>
+            </div>
             <nav>
                 ${navItems.map(item => html`
                     <a href="${item.href}" class="${navItemClass} ${props.activeTab === item.id ? 'active' : ''}">
@@ -250,6 +234,38 @@ export const Layout = (props: LayoutProps) => {
             ${props.children}
         </main>
       </div>
+
+      ${Modal({
+        id: "config-modal",
+        title: t.config_change_name,
+        closeAction: "this.closest('dialog').close()",
+        children: html`
+            <form method="POST" action="/admin/config">
+                <div class="grid-vertical" style="display:flex; flex-direction:column; gap:1.5rem;">
+                    <label style="width:100%;">
+                        <span class="${formLabel}">${t.label_app_name_ja}</span>
+                        <input type="text" name="app_name_ja" value="${props.appConfig.appName.ja}" required />
+                    </label>
+                    <label style="width:100%;">
+                        <span class="${formLabel}">${t.label_app_name_en}</span>
+                        <input type="text" name="app_name_en" value="${props.appConfig.appName.en}" required />
+                    </label>
+                    <hr />
+                    <label style="width:100%;">
+                        <span class="${formLabel}">${t.label_app_subtitle_ja}</span>
+                        <input type="text" name="app_subtitle_ja" value="${props.appConfig.appSubtitle.ja}" required />
+                    </label>
+                    <label style="width:100%;">
+                        <span class="${formLabel}">${t.label_app_subtitle_en}</span>
+                        <input type="text" name="app_subtitle_en" value="${props.appConfig.appSubtitle.en}" required />
+                    </label>
+                    <div style="margin-top:1rem;">
+                        ${Button({ type: "submit", children: t.save })}
+                    </div>
+                </div>
+            </form>
+        `
+      })}
 
       <script>
         function toggleSidebar() {
