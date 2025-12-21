@@ -747,35 +747,39 @@ app.post('/reset-password', async (c) => {
 })
 
 app.post('/admin/config', async (c) => {
-    const user = await getAdmin(c)
-    if (!user) return c.redirect('/login')
-    const body = await c.req.parseBody()
-    const app_name_ja = body['app_name_ja'] as string
-    const app_name_en = body['app_name_en'] as string
-    const app_subtitle_ja = body['app_subtitle_ja'] as string
-    const app_subtitle_en = body['app_subtitle_en'] as string
+    try {
+        const user = await getAdmin(c)
+        if (!user) return c.redirect('/login')
+        const body = await c.req.parseBody()
+        const app_name_ja = body['app_name_ja'] as string
+        const app_name_en = body['app_name_en'] as string
+        const app_subtitle_ja = body['app_subtitle_ja'] as string
+        const app_subtitle_en = body['app_subtitle_en'] as string
 
-    if (app_name_ja) {
-        await c.env.DB.prepare('INSERT INTO system_config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=?')
-            .bind('app_name_ja', app_name_ja, app_name_ja).run()
-    }
-    if (app_name_en) {
-        await c.env.DB.prepare('INSERT INTO system_config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=?')
-            .bind('app_name_en', app_name_en, app_name_en).run()
-    }
-    if (app_subtitle_ja) {
-        await c.env.DB.prepare('INSERT INTO system_config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=?')
-            .bind('app_subtitle_ja', app_subtitle_ja, app_subtitle_ja).run()
-    }
-    if (app_subtitle_en) {
-        await c.env.DB.prepare('INSERT INTO system_config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=?')
-            .bind('app_subtitle_en', app_subtitle_en, app_subtitle_en).run()
-    }
+        if (app_name_ja) {
+            await c.env.DB.prepare('INSERT INTO system_config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=?')
+                .bind('app_name_ja', app_name_ja, app_name_ja).run()
+        }
+        if (app_name_en) {
+            await c.env.DB.prepare('INSERT INTO system_config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=?')
+                .bind('app_name_en', app_name_en, app_name_en).run()
+        }
+        if (app_subtitle_ja) {
+            await c.env.DB.prepare('INSERT INTO system_config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=?')
+                .bind('app_subtitle_ja', app_subtitle_ja, app_subtitle_ja).run()
+        }
+        if (app_subtitle_en) {
+            await c.env.DB.prepare('INSERT INTO system_config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=?')
+                .bind('app_subtitle_en', app_subtitle_en, app_subtitle_en).run()
+        }
 
-    const details = JSON.stringify({ key: 'log_config_update', params: { admin: user.email } });
-    await c.env.DB.prepare('INSERT INTO audit_logs (event_type, details) VALUES (?, ?)').bind('CONFIG_UPDATE', details).run()
+        const details = JSON.stringify({ key: 'log_config_update', params: { admin: user.email } });
+        await c.env.DB.prepare('INSERT INTO audit_logs (event_type, details) VALUES (?, ?)').bind('CONFIG_UPDATE', details).run()
 
-    return c.redirect('/admin')
+        return c.redirect('/admin')
+    } catch (e: any) {
+        return c.text('Error updating config: ' + e.message, 500)
+    }
 })
 
 export default app
