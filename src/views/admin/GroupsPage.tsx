@@ -1,8 +1,10 @@
 import { html, raw } from 'hono/html'
+import { css } from 'hono/css'
 import { Layout } from './Layout'
 import { dict } from '../../i18n'
 import { Group, App } from '../../types'
 import { Modal } from '../components/Modal'
+import { Button } from '../components/Button'
 
 interface Props {
   t: typeof dict.en
@@ -16,7 +18,6 @@ export const GroupsPage = (props: Props) => {
   const allAppsJson = JSON.stringify(props.apps.map(a => ({value: a.id, text: a.name})));
 
   const scriptContent = raw(`
-
     (function() {
         var i18nEl = document.getElementById('i18n-data');
         var i18n = i18nEl ? i18nEl.dataset : {};
@@ -89,13 +90,11 @@ export const GroupsPage = (props: Props) => {
                 item.style.padding = '0.75rem 0';
                 item.style.borderBottom = '1px solid #f1f5f9';
                 
-                // Main Flex Container
                 var row = document.createElement('div');
                 row.style.display = 'flex';
                 row.style.justifyContent = 'space-between';
                 row.style.alignItems = 'center';
                 
-                // Left Column
                 var left = document.createElement('div');
                 left.style.display = 'flex';
                 left.style.flexDirection = 'column';
@@ -116,7 +115,6 @@ export const GroupsPage = (props: Props) => {
                 
                 row.appendChild(left);
                 
-                // Right Column (Actions)
                 var right = document.createElement('div');
                 right.style.display = 'flex';
                 right.style.gap = '0.5rem';
@@ -142,7 +140,6 @@ export const GroupsPage = (props: Props) => {
             if (tsControl) { appIds = tsControl.getValue(); if (!Array.isArray(appIds)) appIds = [appIds]; } 
             else { var appSelect = document.getElementById('g-perm-app-id'); if (appSelect.value) appIds = [appSelect.value]; }
             appIds = appIds.filter(function(id) { return id !== ''; });
-            // Use i18n for alert
             if(appIds.length === 0) { alert(i18n.alertSelectApp || 'Select at least one App'); return; }
             var warningMessages = [];
             appIds.forEach(function(id) {
@@ -177,381 +174,277 @@ export const GroupsPage = (props: Props) => {
             var el = document.getElementById(targetId); if(el) el.value = d.toISOString().split('T')[0];
         };
     })();
-
   `);
+
+  const listGrid = css`display: flex; flex-direction: column; gap: 1rem;`
+  
+  const listCard = css`
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.2rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    cursor: pointer;
+    &:hover {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        border-color: var(--primary);
+        transform: translateY(-1px);
+    }
+  `
+
+  const itemTitle = css`font-weight: 600; font-size: 1rem; color: #1e293b; margin-bottom: 0.2rem;`
+  const actionBtn = css`
+    background: transparent !important; 
+    border: none !important; 
+    color: #94a3b8 !important; 
+    cursor: pointer !important; 
+    padding: 8px !important; 
+    border-radius: 50% !important; 
+    transition: all 0.2s !important;
+    box-shadow: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 36px !important;
+    height: 36px !important;
+    flex-shrink: 0 !important;
+    &:hover { background: #f1f5f9 !important; color: var(--text-main) !important; }
+  `
+  const deleteBtn = css`${actionBtn} &:hover { background: #fef2f2 !important; color: #ef4444 !important; }`
+
+  const grantFormCard = css`
+    background: #ffffff;
+    padding: 2rem;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    margin-bottom: 2rem;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  `
+  
+  const formLabel = css`
+    display: block;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+  `
+
+  const dateInput = css`
+    width: 100%;
+    padding: 0.8rem 1rem;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 1rem;
+    color: #334155;
+    transition: all 0.2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    &:focus {
+        border-color: var(--primary);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+  `
+
+  const quickBtnGroup = css`
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+  `
+
+  const pageWrapper = css`
+    & .ts-control {
+        background-color: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 8px !important;
+        padding: 6px 10px !important;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+        font-size: 1rem !important;
+        min-height: auto !important;
+        display: flex !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+        gap: 6px !important;
+    }
+    & .ts-wrapper .ts-control > input,
+    & .ts-wrapper.multi .ts-control > input,
+    & .ts-wrapper.single .ts-control > input,
+    & div.ts-control > input {
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: auto !important;
+        flex: 1 1 auto !important;
+        min-width: 4rem !important;
+        display: inline-block !important;
+        height: auto !important;
+        line-height: inherit !important;
+        border-radius: 0 !important;
+    }
+    & .ts-wrapper.focus .ts-control {
+        border-color: var(--primary) !important;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
+    }
+    & .ts-wrapper.multi .ts-control > div.item {
+        background: #eff6ff !important;
+        color: #4f46e5 !important;
+        border: 1px solid #c7d2fe !important;
+        border-radius: 6px !important;
+        padding: 4px 10px !important;
+        margin: 0 !important;
+        font-size: 0.95rem !important;
+        font-weight: 500 !important;
+        display: flex !important;
+        align-items: center !important;
+        line-height: 1.2 !important;
+    }
+    & .ts-dropdown {
+        border-radius: 8px !important;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+        border: 1px solid #e2e8f0 !important;
+        z-index: 20000 !important;
+        font-size: 1rem !important;
+    }
+    & .ts-dropdown .option {
+        padding: 10px 16px !important;
+        cursor: pointer !important;
+        color: #334155 !important;
+    }
+    & .ts-dropdown .option.active, & .ts-dropdown .active {
+        background-color: #f1f5f9 !important;
+        color: var(--primary) !important;
+        font-weight: 600 !important;
+    }
+  `
 
   return Layout({
     t: t,
     userEmail: props.userEmail,
     activeTab: 'groups',
     children: html`
-      <style>
-        
-        /* --- Base & Reset --- */
-        .material-symbols-outlined { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; }
-        
-        /* --- Animation: Border Blink --- */
-        @keyframes border-blink {
-            0% { border-color: #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
-            50% { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.2); }
-            100% { border-color: #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
-        }
-        .blink-active {
-            animation: border-blink 1s ease-in-out 3;
-        }
-
-        /* --- Card / List Layout --- */
-        .list-grid { display: flex; flex-direction: column; gap: 1rem; }
-        
-        /* List Item Card */
-        .list-card {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 1.2rem 1.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            transition: all 0.2s ease;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            cursor: pointer;
-        }
-        .list-card:hover {
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            border-color: var(--primary);
-            transform: translateY(-1px);
-        }
-        
-        /* Text Typography */
-        .item-title { font-weight: 600; font-size: 1rem; color: #1e293b; margin-bottom: 0.2rem; }
-        .item-sub { font-size: 0.85rem; color: #64748b; display: flex; align-items: center; gap: 0.4rem; }
-        
-        /* --- Permission Grant Card --- */
-        #grant-form-card {
-            background: #ffffff;
-            padding: 2rem;
-            border-radius: 16px;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-            margin-bottom: 2rem;
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .form-label {
-            display: block;
-            font-weight: 700;
-            font-size: 0.95rem;
-            color: #1e293b;
-            margin-bottom: 0.5rem;
-        }
-        
-        /* Date Inputs */
-        input[type="date"] {
-            width: 100%;
-            padding: 0.8rem 1rem;
-            background: #ffffff;
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            font-size: 1rem;
-            color: #334155;
-            transition: all 0.2s;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-        input[type="date"]:focus {
-            border-color: var(--primary);
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-        }
-
-        /* Quick Buttons */
-        .quick-btn-group {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 0.75rem;
-            margin-top: 0.75rem;
-        }
-        .quick-btn {
-            background: #ffffff !important;
-            border: 1px solid #e2e8f0 !important;
-            color: #64748b !important;
-            padding: 0.6rem 0.5rem !important;
-            border-radius: 8px !important;
-            font-size: 0.85rem !important;
-            font-weight: 500 !important;
-            cursor: pointer !important;
-            transition: all 0.2s !important;
-            text-align: center !important;
-            width: 100% !important;
-            box-shadow: none !important;
-            line-height: 1 !important;
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-        }
-        .quick-btn:hover {
-            border-color: var(--primary) !important;
-            color: var(--primary) !important;
-            background: #eff6ff !important;
-            box-shadow: none !important;
-        }
-
-        /* Grant Button */
-        #btn-grant-perm {
-            width: 100%;
-            margin-top: 2rem;
-            padding: 1rem;
-            background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-        }
-        #btn-grant-perm:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
-        }
-        
-        /* Action Buttons */
-        .action-btn { 
-            background: transparent !important; 
-            border: none !important; 
-            color: #94a3b8 !important; 
-            cursor: pointer !important; 
-            padding: 8px !important; 
-            border-radius: 50% !important; 
-            transition: all 0.2s !important;
-            box-shadow: none !important;
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            width: 36px !important;
-            height: 36px !important;
-            flex-shrink: 0 !important;
-        }
-        .action-btn:hover { background: #f1f5f9 !important; color: var(--text-main) !important; }
-        .action-btn.delete:hover { background: #fef2f2 !important; color: #ef4444 !important; }
-
-        /* --- Tom Select Customization --- */
-        .ts-control {
-            background-color: #ffffff !important;
-            border: 1px solid #cbd5e1 !important;
-            border-radius: 8px !important;
-            padding: 6px 10px !important;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
-            font-size: 1rem !important;
-            min-height: auto !important;
-            display: flex !important;
-            flex-wrap: wrap !important;
-            align-items: center !important;
-            gap: 6px !important;
-        }
-
-        /* Override Global Input Border AND Radius */
-        .ts-wrapper .ts-control > input,
-        .ts-wrapper.multi .ts-control > input,
-        .ts-wrapper.single .ts-control > input,
-        div.ts-control > input {
-            border: none !important;
-            background: transparent !important;
-            box-shadow: none !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            width: auto !important;
-            flex: 1 1 auto !important;
-            min-width: 4rem !important;
-            display: inline-block !important;
-            height: auto !important;
-            line-height: inherit !important;
-            border-radius: 0 !important;
-        }
-
-        .ts-wrapper.focus .ts-control {
-            border-color: var(--primary) !important;
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
-        }
-
-        .ts-wrapper.multi .ts-control > div.item {
-            background: #eff6ff !important;
-            color: #4f46e5 !important;
-            border: 1px solid #c7d2fe !important;
-            border-radius: 6px !important;
-            padding: 4px 10px !important;
-            margin: 0 !important;
-            font-size: 0.95rem !important;
-            font-weight: 500 !important;
-            display: flex !important;
-            align-items: center !important;
-            line-height: 1.2 !important;
-        }
-
-        .ts-dropdown {
-            border-radius: 8px !important;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
-            border: 1px solid #e2e8f0 !important;
-            z-index: 20000 !important;
-            font-size: 1rem !important;
-        }
-        .ts-dropdown .option {
-            padding: 10px 16px !important;
-            cursor: pointer !important;
-            color: #334155 !important;
-        }
-        .ts-dropdown .option.active, .ts-dropdown .active {
-            background-color: #f1f5f9 !important;
-            color: var(--primary) !important;
-            font-weight: 600 !important;
-        }
-        
-        /* Modal tweaks */
-        dialog article { 
-            padding: 0 !important; 
-            overflow: hidden; 
-            border-radius: 20px !important; 
-            max-width: 750px; /* UPDATED from 600px */
-            width: 100%;      /* ADDED */
-        }
-        .modal-header { padding: 1.5rem 2rem; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; }
-        .modal-body { padding: 2rem; max-height: 80vh; overflow-y: auto; }
-        .modal-title { font-size: 1.25rem; font-weight: 700; color: #0f172a; }
-        
-        .checkbox-label {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-top: 0.75rem;
-            font-size: 0.95rem;
-            color: #475569;
-            cursor: pointer;
-            width: fit-content;
-        }
-        .checkbox-label input { width: 1.1em; height: 1.1em; cursor: pointer; }
-
-      </style>
-
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-        <h2 style="margin-bottom: 0;">${t.section_groups}</h2>
-        <button onclick="document.getElementById('new-group-modal').showModal()" style="width: auto; margin-bottom: 0; padding: 0.5rem 1rem; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem; background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%); color:white; border:none; border-radius:12px; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);">
-            <span class="material-symbols-outlined" style="font-size:18px;">add</span> ${t.btn_add_group}
-        </button>
-      </div>
-
-      ${Modal({
-        id: "new-group-modal",
-        title: t.header_new_group,
-        closeAction: "this.closest('dialog').close()",
-        children: html`
-              <form method="POST" action="/admin/groups">
-                <div class="grid-vertical">
-                    <label style="width:100%;">
-                      <span class="form-label">${t.label_group_name}</span>
-                      <input type="text" name="name" placeholder="${t.placeholder_group_name}" required style="margin-top:0.2rem;" />
-                    </label>
-                    <button type="submit" id="btn-grant-perm" style="margin-top:1rem;">
-                        ${t.btn_add_group}
-                    </button>
-                </div>
-              </form>
-        `
-      })}
-
-      <hr />
-
-      <div class="list-grid">
-        ${props.groups.length === 0 ? html`<div style="text-align:center; padding:2rem; color:#94a3b8;">${t.no_groups}</div>` : ''}
-        ${props.groups.map((g) => {
-            return html`
-          <div class="list-card" onclick="openGroupModal('${g.id}', '${g.name}')">
-            <div style="flex-grow:1;">
-                <div class="item-title">${g.name}</div>
-            </div>
-            <div>
-                <form method="POST" action="/admin/groups/delete" style="margin:0;" onsubmit="return confirm('${t.confirm_delete_group}')" onclick="event.stopPropagation()">
-                     <input type="hidden" name="id" value="${g.id}" />
-                     <button class="action-btn delete" title="${t.delete}">
-                        <span class="material-symbols-outlined">delete</span>
-                     </button>
-                </form>
-            </div>
+      <div class="${pageWrapper}">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h2 style="margin-bottom: 0;">${t.section_groups}</h2>
+            <button onclick="document.getElementById('new-group-modal').showModal()" style="width: auto; margin-bottom: 0; padding: 0.5rem 1rem; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem; background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%); color:white; border:none; border-radius:12px; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);">
+                <span class="material-symbols-outlined" style="font-size:18px;">add</span> ${t.btn_add_group}
+            </button>
           </div>
-        `})}
-      </div>
 
-      ${Modal({
-        id: "group-modal",
-        title: html`${t.modal_section_group}: <span id="modal-group-name" style="font-weight:400; color:#64748b; margin-left:0.5rem;"></span>`,
-        closeAction: "closeGroupModal()",
-        closeBtnId: "modal-close-btn",
-        children: html`
-             <div id="grant-form-card">
-                <div style="margin-bottom: 1.5rem;">
-                   <label class="form-label">${t.modal_label_app}</label>
-                   <select id="g-perm-app-id" multiple autocomplete="off" placeholder="${t.placeholder_select}" style="width:100%; margin-bottom:0;">
-                      <option value="">Select App...</option>
-                      ${props.apps.map(a => html`<option value="${a.id}">${a.name}</option>`)}
-                   </select>
+          ${Modal({
+            id: "new-group-modal",
+            title: t.header_new_group,
+            closeAction: "this.closest('dialog').close()",
+            children: html`
+                  <form method="POST" action="/admin/groups">
+                    <div class="grid-vertical">
+                        <label style="width:100%;">
+                          <span class="${formLabel}">${t.label_group_name}</span>
+                          <input type="text" name="name" placeholder="${t.placeholder_group_name}" required style="margin-top:0.2rem;" />
+                        </label>
+                        <div style="margin-top:1rem;">
+                            ${Button({ type: "submit", children: t.btn_add_group })}
+                        </div>
+                    </div>
+                  </form>
+            `
+          })}
+
+          <hr />
+
+          <div class="${listGrid}">
+            ${props.groups.length === 0 ? html`<div style="text-align:center; padding:2rem; color:#94a3b8;">${t.no_groups}</div>` : ''}
+            ${props.groups.map((g) => {
+                return html`
+              <div class="${listCard}" onclick="openGroupModal('${g.id}', '${g.name}')">
+                <div style="flex-grow:1;">
+                    <div class="${itemTitle}">${g.name}</div>
                 </div>
+                <div>
+                    <form method="POST" action="/admin/groups/delete" style="margin:0;" onsubmit="return confirm('${t.confirm_delete_group}')" onclick="event.stopPropagation()">
+                         <input type="hidden" name="id" value="${g.id}" />
+                         <button class="${deleteBtn}" title="${t.delete}">
+                            <span class="material-symbols-outlined">delete</span>
+                         </button>
+                    </form>
+                </div>
+              </div>
+            `})}
+          </div>
 
-                <div style="display:grid; grid-template-columns: 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
-                     <div>
-                          <label class="form-label">
-                            ${t.label_valid_from} <span style="font-weight:normal; color:#94a3b8; font-size:0.85em;">(開始予定日)</span>
-                          </label>
-                          <input type="date" id="g-perm-valid-from" />
-                          <div class="quick-btn-group">
-                              <button type="button" class="quick-btn" onclick="calcGroupDate('g-perm-valid-from', -1, 'month')">-1ヶ月</button>
-                              <button type="button" class="quick-btn" onclick="calcGroupDate('g-perm-valid-from', -7, 'day')">-1週間</button>
-                              <button type="button" class="quick-btn" onclick="calcGroupDate('g-perm-valid-from', -1, 'day')">-1日</button>
-                              <button type="button" class="quick-btn" onclick="calcGroupDate('g-perm-valid-from', 0, 'day')">${t.btn_date_today}</button>
-                          </div>
-                     </div>
-                     <div>
-                         <label class="form-label">${t.label_valid_to}</label>
-                         <input type="date" id="g-perm-valid-to" />
-                         <div class="quick-btn-group">
-                              <button type="button" class="quick-btn" onclick="calcGroupDate('g-perm-valid-to', 0, 'day')">${t.btn_date_today}</button>
-                              <button type="button" class="quick-btn" onclick="calcGroupDate('g-perm-valid-to', 1, 'month')">${t.btn_term_1mo}</button>
-                              <button type="button" class="quick-btn" onclick="calcGroupDate('g-perm-valid-to', 1, 'year')">${t.btn_term_1yr}</button>
-                              <button type="button" class="quick-btn" onclick="calcGroupDate('g-perm-valid-to', 99, 'forever')">${t.btn_term_forever}</button>
+          ${Modal({
+            id: "group-modal",
+            title: html`${t.modal_section_group}: <span id="modal-group-name" style="font-weight:400; color:#64748b; margin-left:0.5rem;"></span>`,
+            closeAction: "closeGroupModal()",
+            closeBtnId: "modal-close-btn",
+            children: html`
+                 <div class="${grantFormCard}">
+                    <div style="margin-bottom: 1.5rem;">
+                       <label class="${formLabel}">${t.modal_label_app}</label>
+                       <select id="g-perm-app-id" multiple autocomplete="off" placeholder="${t.placeholder_select}" style="width:100%; margin-bottom:0;">
+                          <option value="">Select App...</option>
+                          ${props.apps.map(a => html`<option value="${a.id}">${a.name}</option>`)}
+                       </select>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                         <div>
+                              <label class="${formLabel}">
+                                ${t.label_valid_from} <span style="font-weight:normal; color:#94a3b8; font-size:0.85em;">(開始予定日)</span>
+                              </label>
+                              <input type="date" id="g-perm-valid-from" class="${dateInput}" />
+                              <div class="${quickBtnGroup}">
+                                  ${Button({ variant: "outline", onclick: "calcGroupDate('g-perm-valid-from', -1, 'month')", children: "-1ヶ月", style: "padding:0.6rem 0.5rem; font-size:0.85rem;" })}
+                                  ${Button({ variant: "outline", onclick: "calcGroupDate('g-perm-valid-from', -7, 'day')", children: "-1週間", style: "padding:0.6rem 0.5rem; font-size:0.85rem;" })}
+                                  ${Button({ variant: "outline", onclick: "calcGroupDate('g-perm-valid-from', -1, 'day')", children: "-1日", style: "padding:0.6rem 0.5rem; font-size:0.85rem;" })}
+                                  ${Button({ variant: "outline", onclick: "calcGroupDate('g-perm-valid-from', 0, 'day')", children: t.btn_date_today, style: "padding:0.6rem 0.5rem; font-size:0.85rem;" })}
+                              </div>
                          </div>
-                     </div>
-                </div>
+                         <div>
+                             <label class="${formLabel}">${t.label_valid_to}</label>
+                             <input type="date" id="g-perm-valid-to" class="${dateInput}" />
+                             <div class="${quickBtnGroup}">
+                                  ${Button({ variant: "outline", onclick: "calcGroupDate('g-perm-valid-to', 0, 'day')", children: t.btn_date_today, style: "padding:0.6rem 0.5rem; font-size:0.85rem;" })}
+                                  ${Button({ variant: "outline", onclick: "calcGroupDate('g-perm-valid-to', 1, 'month')", children: t.btn_term_1mo, style: "padding:0.6rem 0.5rem; font-size:0.85rem;" })}
+                                  ${Button({ variant: "outline", onclick: "calcGroupDate('g-perm-valid-to', 1, 'year')", children: t.btn_term_1yr, style: "padding:0.6rem 0.5rem; font-size:0.85rem;" })}
+                                  ${Button({ variant: "outline", onclick: "calcGroupDate('g-perm-valid-to', 99, 'forever')", children: t.btn_term_forever, style: "padding:0.6rem 0.5rem; font-size:0.85rem;" })}
+                             </div>
+                         </div>
+                    </div>
 
-                <button type="button" id="btn-grant-perm" onclick="grantGroupPermission()">
-                    <span class="material-symbols-outlined">add</span>
-                    <span>${t.btn_grant}</span>
-                </button>
-             </div>
-             
-             <h4 style="font-size:1.1rem; margin:2rem 0 1rem; font-weight:600; color:#334155;">${t.header_active_permissions}</h4>
-             
-             <div id="modal-g-perm-list"></div>
-        `
-      })}
+                    ${Button({ id: "btn-grant-perm", onclick: "grantGroupPermission()", children: html`<span class="material-symbols-outlined">add</span> <span>${t.btn_grant}</span>` })}
+                 </div>
+                 
+                 <h4 style="font-size:1.1rem; margin:2rem 0 1rem; font-weight:600; color:#334155;">${t.header_active_permissions}</h4>
+                 
+                 <div id="modal-g-perm-list"></div>
+            `
+          })}
 
-      <div id="i18n-data" style="display:none;"
-        data-msg-revoke="${t.confirm_revoke_permission}"
-        data-term-forever="${t.btn_term_forever}"
-        data-msg-overwrite-confirm="${t.confirm_overwrite}"
-        data-alert-select-app="${t.alert_select_app}"
-        data-alert-update-fail="${t.alert_update_fail}"
-        data-alert-error="${t.alert_error}"
-        data-placeholder-select="${t.placeholder_select}" 
-        data-text-no-results="${t.text_no_results}"
-      ></div>
-      
-      <script type="application/json" id="app-data">${raw(allAppsJson)}</script>
+          <div id="i18n-data" style="display:none;"
+            data-msg-revoke="${t.confirm_revoke_permission}"
+            data-term-forever="${t.btn_term_forever}"
+            data-msg-overwrite-confirm="${t.confirm_overwrite}"
+            data-alert-select-app="${t.alert_select_app}"
+            data-alert-update-fail="${t.alert_update_fail}"
+            data-alert-error="${t.alert_error}"
+            data-placeholder-select="${t.placeholder_select}" 
+            data-text-no-results="${t.text_no_results}"
+          ></div>
+          
+          <script type="application/json" id="app-data">${raw(allAppsJson)}</script>
 
-      <script>
-      ${scriptContent}
-      </script>
+          <script>
+          ${scriptContent}
+          </script>
+      </div>
     `
   })
 }

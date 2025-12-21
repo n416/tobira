@@ -1,5 +1,6 @@
 import { html } from 'hono/html'
 import { JSX } from 'hono/jsx/jsx-runtime'
+import { Style } from 'hono/css'
 
 interface Props {
   title: string
@@ -19,6 +20,7 @@ export const Layout = (props: Props) => {
           body { padding-top: 2rem; }
           .error { color: #d32f2f; background: #ffcdd2; padding: 0.5rem; border-radius: 4px; margin-bottom: 1rem; }
         `}</style>
+        ${Style()}
       </head>
       <body>
         <main class="container">
