@@ -2,6 +2,7 @@ import { html, raw } from 'hono/html'
 import { Layout } from './Layout'
 import { dict } from '../../i18n'
 import { User, App, Group } from '../../types'
+import { Modal } from '../components/Modal'
 
 interface Props {
     t: typeof dict.en
@@ -99,7 +100,6 @@ export const UsersPage = (props: Props) => {
                     .catch(function(e) { console.error(e); });
             };
             window.closeUserModal = function() { if(modal) modal.close(); window.resetGrantButton(); };
-            
             window.resetGrantButton = function() {
                 var btn = document.getElementById('btn-grant-perm');
                 if(btn) { btn.innerHTML = '<span class="material-symbols-outlined">add</span> <span>' + (i18n.btnGrant || 'Grant') + '</span>'; }
@@ -107,7 +107,6 @@ export const UsersPage = (props: Props) => {
                 if(card) { card.classList.remove('blink-active'); }
                 if(tsControl) { tsControl.settings.maxItems = null; tsControl.refreshOptions(); }
             };
-
             window.highlightGrantForm = function() {
                 var btn = document.getElementById('btn-grant-perm');
                 if(btn) { btn.innerHTML = '<span class="material-symbols-outlined">edit</span> <span>' + (i18n.btnChange || '変更') + '</span>'; btn.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
@@ -119,7 +118,6 @@ export const UsersPage = (props: Props) => {
                     card.classList.add('blink-active'); 
                 }
             };
-            
             window.editPerm = function(appId, startTs, endTs) {
                 var filterCheck = document.getElementById('exclude-existing-check');
                 if(filterCheck && filterCheck.checked) { filterCheck.checked = false; refreshAppOptions(); }
@@ -551,15 +549,11 @@ export const UsersPage = (props: Props) => {
       
       ${props.error ? html`<article style="background:#ffebee; color:#c62828; border-left:4px solid #c62828; margin-bottom:1rem;">${props.error}</article>` : ''}
 
-      <dialog id="invite-modal">
-        <article>
-          <header class="modal-header">
-            <div class="modal-title">${t.header_invite}</div>
-            <a href="#close" aria-label="Close" class="action-btn" onclick="this.closest('dialog').close()">
-                <span class="material-symbols-outlined">close</span>
-            </a>
-          </header>
-          <div class="modal-body">
+      ${Modal({
+        id: "invite-modal",
+        title: t.header_invite,
+        closeAction: "this.closest('dialog').close()",
+        children: html`
               <form method="POST" action="/admin/invite">
                 <div class="grid-vertical">
                     <label style="margin-bottom:0; width:100%;">
@@ -578,9 +572,8 @@ export const UsersPage = (props: Props) => {
                     <input type="text" value="${props.inviteUrl}" readonly onclick="this.select()" style="margin-top:0.5rem; background:white;" />
                 </div>
               `: ''}
-          </div>
-        </article>
-      </dialog>
+        `
+      })}
 
       <hr />
 
@@ -649,16 +642,12 @@ export const UsersPage = (props: Props) => {
         <input type="hidden" name="id" value="" />
       </form>
 
-      <dialog id="user-modal">
-        <article>
-          <header class="modal-header">
-            <div class="modal-title">${t.header_user_details} <span id="modal-user-email" style="font-weight:400; font-size:1rem; color:#64748b; margin-left:0.5rem;"></span></div>
-            <a href="#close" id="modal-close-btn" aria-label="Close" class="action-btn" onclick="closeUserModal()">
-                <span class="material-symbols-outlined">close</span>
-            </a>
-          </header>
-          
-          <div class="modal-body">
+      ${Modal({
+        id: "user-modal",
+        title: html`${t.header_user_details} <span id="modal-user-email" style="font-weight:400; font-size:1rem; color:#64748b; margin-left:0.5rem;"></span>`,
+        closeAction: "closeUserModal()",
+        closeBtnId: "modal-close-btn",
+        children: html`
               <div style="margin-bottom: 2rem;">
                 <label class="form-label">${t.modal_section_group}</label>
                 <div style="display: flex; gap: 0.5rem; align-items: stretch;">
@@ -720,9 +709,8 @@ export const UsersPage = (props: Props) => {
               </div>
 
               <div id="modal-perm-list"></div>
-          </div>
-        </article>
-      </dialog>
+        `
+      })}
 
       <div id="i18n-data" style="display:none;"
         data-delete-confirm="${t.confirm_delete_user}"
