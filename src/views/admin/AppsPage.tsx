@@ -1,5 +1,5 @@
 import { html, raw } from 'hono/html'
-import { css, keyframes } from 'hono/css'
+import { css } from 'hono/css'
 import { Layout } from './Layout'
 import { dict } from '../../i18n'
 import { App, SystemConfig } from '../../types'
@@ -51,9 +51,7 @@ export const AppsPage = (props: Props) => {
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     cursor: pointer;
     &:hover {
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        border-color: var(--primary);
-        transform: translateY(-1px);
+        outline: 1px solid var(--primary);
     }
   `
 

@@ -1,5 +1,5 @@
 import { html, raw } from 'hono/html'
-import { css } from 'hono/css'
+import { css, keyframes } from 'hono/css'
 import { Layout } from './Layout'
 import { dict } from '../../i18n'
 import { Group, App, SystemConfig } from '../../types'
@@ -217,6 +217,12 @@ export const GroupsPage = (props: Props) => {
     })();
   `);
 
+  const blinkActive = keyframes`
+        0% { border-color: #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+        50% { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.2); }
+        100% { border-color: #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+  `
+
   const listGrid = css`display: flex; flex-direction: column; gap: 1rem;`
   
   const listCard = css`
@@ -231,9 +237,7 @@ export const GroupsPage = (props: Props) => {
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     cursor: pointer;
     &:hover {
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        border-color: var(--primary);
-        transform: translateY(-1px);
+        outline: 1px solid var(--primary);
     }
   `
 
@@ -265,6 +269,9 @@ export const GroupsPage = (props: Props) => {
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     margin-bottom: 2rem;
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    &.blink-active {
+        animation: ${blinkActive} 1s ease-in-out 3;
+    }
   `
   
   const formLabel = css`

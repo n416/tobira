@@ -319,9 +319,7 @@ export const UsersPage = (props: Props) => {
         box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         cursor: pointer;
         &:hover {
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            border-color: var(--primary);
-            transform: translateY(-1px);
+            outline: 1px solid var(--primary);
         }
     `
     const itemTitle = css`font-weight: 600; font-size: 1rem; color: #1e293b; margin-bottom: 0.2rem;`
