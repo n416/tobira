@@ -183,7 +183,7 @@ app.post('/login', async (c) => {
 
     // Regular Login (No 2FA)
     const sessionId = generateToken()
-    const expires = Math.floor(Date.now() / 1000) + 2592000
+    const expires = Math.floor(Date.now() / 1000) + 86400
     await c.env.DB.prepare('INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)').bind(sessionId, user.id, expires).run()
     setCookie(c, '__Host-idp_session', sessionId, getCookieOptions(expires))
 
@@ -883,7 +883,7 @@ app.post('/login/2fa', async (c) => {
     if (verifyToken(otp, user.two_factor_secret)) {
         // 2FA Success: Issue real session
         const sessionId = generateToken()
-        const expires = Math.floor(Date.now() / 1000) + 2592000
+        const expires = Math.floor(Date.now() / 1000) + 86400
         await c.env.DB.prepare('INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)').bind(sessionId, user.id, expires).run()
         setCookie(c, '__Host-idp_session', sessionId, getCookieOptions(expires))
         
