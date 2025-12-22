@@ -37,7 +37,7 @@ export const Setup2FA = (props: Props) => {
             <p style="font-size: 0.8rem; color: var(--text-sub); margin-top: 0.5rem;">${t.label_secret_key}</p>
         </div>
 
-        <form method="POST" action="/user/2fa/setup">
+        <form method="POST" action="">
             <input type="hidden" name="secret" value="${props.secret}" />
             ${Input({ type: "text", name: "token", placeholder: "000000", required: true, icon: html`<span class="material-symbols-outlined">lock</span>` })}
             ${Button({ type: "submit", children: t.btn_setup_2fa })}

@@ -29,7 +29,7 @@ export const Login2FA = (props: Props) => {
             ${t.desc_2fa_verify}
         </p>
 
-        <form method="POST" action="/login/2fa">
+        <form method="POST" action="">
             ${props.redirectTo ? html`<input type="hidden" name="redirect_to" value="${props.redirectTo}" />` : ''}
             ${Input({ type: "text", name: "token", placeholder: "000000", required: true, icon: html`<span class="material-symbols-outlined">lock</span>`, value: "" })}
             ${Button({ type: "submit", children: t.btn_verify })}

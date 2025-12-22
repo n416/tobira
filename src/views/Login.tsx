@@ -185,7 +185,7 @@ export const Login = (props: Props) => {
             ${props.error ? html`<div class="error-message">${props.error}</div>` : ''}
             ${props.message ? html`<div class="success-message">${props.message}</div>` : ''}
             
-            <form method="POST" action="/login">
+            <form method="POST" action="">
                 ${props.redirectTo ? html`<input type="hidden" name="redirect_to" value="${props.redirectTo}" />` : ''}
 
                 <div class="${inputGroupClass}">
