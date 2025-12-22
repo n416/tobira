@@ -5,7 +5,9 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash TEXT NOT NULL,
     group_id TEXT,
     created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
+    updated_at INTEGER NOT NULL,
+    two_factor_secret TEXT,
+    recovery_codes TEXT
 );
 
 CREATE TABLE IF NOT EXISTS sessions (

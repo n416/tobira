@@ -181,6 +181,27 @@ export const dict = {
     stat_users: 'Users',
     stat_logs: 'Logs',
 
+    title_setup_2fa: 'Setup 2FA',
+    header_setup_2fa: 'Two-Factor Authentication Setup',
+    label_2fa_status: '2FA Status',
+    status_enabled: 'Enabled',
+    status_disabled: 'Disabled',
+    btn_setup_2fa: 'Enable 2FA',
+    btn_disable_2fa: 'Disable 2FA',
+    
+    title_2fa_verify: 'Two-Factor Authentication',
+    header_2fa_verify: 'Verification',
+    desc_2fa_verify: 'Please enter the 6-digit code from your authenticator app.',
+    btn_verify: 'Verify',
+    desc_setup_2fa: 'Scan the QR code with your authenticator app (Google Authenticator, etc.) and enter the 6-digit code below.',
+    label_secret_key: 'Secret Key',
+    label_otp_code: 'Verification Code',
+    err_invalid_code: 'Invalid code. Please try again.',
+    msg_2fa_enabled: 'Two-Factor Authentication has been enabled.',
+    msg_2fa_disabled: 'Two-Factor Authentication has been disabled.',
+    confirm_disable_2fa: 'Are you sure you want to disable 2FA?',
+    
+
     // Config
     config_change_name: 'Change System Name',
     label_app_name_ja: 'System Name (Japanese)',
@@ -368,6 +389,28 @@ export const dict = {
     stat_apps: '登録アプリ数',
     stat_users: '登録ユーザー数',
     stat_logs: '総ログ数',
+
+    title_setup_2fa: '2段階認証設定',
+    header_setup_2fa: '2段階認証のセットアップ',
+    label_2fa_status: '2段階認証',
+    status_enabled: '有効',
+    status_disabled: '無効',
+    btn_setup_2fa: '2段階認証を設定',
+    btn_disable_2fa: '無効にする',
+    
+    
+    title_2fa_verify: '2段階認証',
+    header_2fa_verify: '認証コード入力',
+    desc_2fa_verify: '認証アプリに表示されている6桁のコードを入力してください。',
+    btn_verify: '認証する',
+    desc_setup_2fa: '認証アプリ（Google Authenticatorなど）でQRコードをスキャンし、表示された6桁のコードを入力してください。',
+    label_secret_key: 'シークレットキー',
+    label_otp_code: '確認コード',
+    err_invalid_code: 'コードが正しくありません。再試行してください。',
+    msg_2fa_enabled: '2段階認証を有効にしました。',
+    msg_2fa_disabled: '2段階認証を無効にしました。',
+    confirm_disable_2fa: '本当に2段階認証を無効にしますか？',
+    
 
     // Config
     config_change_name: 'システム名称変更',

@@ -1,6 +1,7 @@
 export interface Env {
   DB: D1Database
   RESEND_API_KEY?: string
+  JWT_SECRET: string
 }
 
 export interface User {
@@ -9,6 +10,8 @@ export interface User {
   password_hash: string
   group_id: string | null
   created_at: number
+  two_factor_secret?: string | null
+  recovery_codes?: string | null
   updated_at: number
 }
 

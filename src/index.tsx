@@ -1,8 +1,10 @@
+import { sign, verify } from 'hono/jwt'
 import { Hono } from 'hono'
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
 import { csrf } from 'hono/csrf'
 import { Env, User, App, Session, Permission, Group, AuthCode, SystemConfig, LocalizedText } from './types'
 import { verifyPassword, hashPassword, generateToken, getCookieOptions } from './utils/auth'
+import { generateSecret, generateQRCode, verifyToken } from './utils/totp'
 import { sendEmail } from './utils/mail'
 import { Login } from './views/Login'
 import { UserDashboard } from './views/UserDashboard'
@@ -10,6 +12,8 @@ import { Invite } from './views/Invite'
 import { ForgotPassword } from './views/ForgotPassword'
 import { ResetPassword } from './views/ResetPassword'
 import { ChangePassword } from './views/ChangePassword'
+import { Setup2FA } from './views/Setup2FA'
+import { Login2FA } from './views/Login2FA'
 
 import { AdminHome } from './views/admin/AdminHome'
 import { AppsPage } from './views/admin/AppsPage'
@@ -124,7 +128,7 @@ app.get('/', async (c) => {
           ((up.valid_from <= ? AND up.valid_to >= ?) OR (up.id IS NULL AND gp.valid_from <= ? AND gp.valid_to >= ?))
       `).bind(user.id, user.group_id || null, now, now, now, now).all()
 
-        return c.html(<UserDashboard t={t} userEmail={user.email} apps={apps as any} siteName={siteName} />)
+        return c.html(<UserDashboard t={t} userEmail={user.email} apps={apps as any} siteName={siteName} has2FA={!!user.two_factor_secret} />)
     } catch (e: any) {
         return c.json({ error: e.message, stack: e.stack }, 500)
     }
@@ -165,6 +169,19 @@ app.post('/login', async (c) => {
         return c.html(<Login t={t} redirectTo={redirectTo} error={t.error_credentials} siteName={siteName} siteSubtitle={siteSubtitle} />)
     }
 
+    // 2FA Check
+    if (user.two_factor_secret) {
+        const secret = c.env.JWT_SECRET || 'dev_secret'
+        // Create a temporary token valid for 5 minutes
+        const token = await sign({ sub: user.id, role: 'pre_2fa', exp: Math.floor(Date.now() / 1000) + 300 }, secret)
+        setCookie(c, 'pre_2fa_token', token, { path: '/', secure: true, httpOnly: true, maxAge: 300, sameSite: 'Lax' })
+        
+        let target = '/login/2fa'
+        if (redirectTo) target += '?redirect_to=' + encodeURIComponent(redirectTo)
+        return c.redirect(target)
+    }
+
+    // Regular Login (No 2FA)
     const sessionId = generateToken()
     const expires = Math.floor(Date.now() / 1000) + 2592000
     await c.env.DB.prepare('INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)').bind(sessionId, user.id, expires).run()
@@ -206,6 +223,49 @@ app.get('/logout', async (c) => {
     }
     setCookie(c, '__Host-idp_session', '', { path: '/', secure: true, httpOnly: true, expires: new Date(0) })
     return c.redirect('/login')
+})
+
+
+app.get('/user/2fa/setup', async (c) => {
+    const user = await getUser(c)
+    if (!user) return c.redirect('/login')
+    const t = getLang(c)
+    
+    const secret = generateSecret()
+    const qrCode = await generateQRCode(secret, user.email, 'Tobira')
+    
+    return c.html(<Setup2FA t={t} qrCodeDataUrl={qrCode} secret={secret} />)
+})
+
+app.post('/user/2fa/setup', async (c) => {
+    const user = await getUser(c)
+    if (!user) return c.redirect('/login')
+    const t = getLang(c)
+    const body = await c.req.parseBody()
+    const token = (body['token'] as string).replace(/\s+/g, '')
+    const secret = body['secret'] as string // In a real app, store this in session/temp-storage, not hidden field
+    
+    if (verifyToken(token, secret)) {
+        await c.env.DB.prepare('UPDATE users SET two_factor_secret = ? WHERE id = ?').bind(secret, user.id).run()
+        const details = JSON.stringify({ key: 'log_2fa_enable', params: { email: user.email } });
+        await c.env.DB.prepare('INSERT INTO audit_logs (event_type, details) VALUES (?, ?)').bind('2FA_ENABLE', details).run()
+        return c.redirect('/?msg=msg_2fa_enabled')
+    } else {
+        const qrCode = await generateQRCode(secret, user.email, 'Tobira')
+        return c.html(<Setup2FA t={t} qrCodeDataUrl={qrCode} secret={secret} error={t.err_invalid_code} />)
+    }
+})
+
+app.post('/user/2fa/disable', async (c) => {
+    const user = await getUser(c)
+    if (!user) return c.redirect('/login')
+    
+    await c.env.DB.prepare('UPDATE users SET two_factor_secret = NULL WHERE id = ?').bind(user.id).run()
+    
+    const details = JSON.stringify({ key: 'log_2fa_disable', params: { email: user.email } });
+    await c.env.DB.prepare('INSERT INTO audit_logs (event_type, details) VALUES (?, ?)').bind('2FA_DISABLE', details).run()
+    
+    return c.redirect('/?msg=msg_2fa_disabled')
 })
 
 app.get('/change-password', async (c) => {
@@ -666,7 +726,7 @@ app.get('/invite', async (c) => {
 app.post('/invite', async (c) => {
     const t = getLang(c)
     const body = await c.req.parseBody()
-    const token = body['token'] as string
+    const token = (body['token'] as string).replace(/\s+/g, '')
     const password = body['password'] as string
 
     const invite = await c.env.DB.prepare('SELECT * FROM invitations WHERE id = ? AND expires_at > ?')
@@ -734,7 +794,7 @@ app.get('/reset-password', async (c) => {
 app.post('/reset-password', async (c) => {
     const t = getLang(c)
     const body = await c.req.parseBody()
-    const token = body['token'] as string
+    const token = (body['token'] as string).replace(/\s+/g, '')
     const password = body['password'] as string
     const reset = await c.env.DB.prepare('SELECT * FROM password_resets WHERE token = ? AND expires_at > ?').bind(token, Math.floor(Date.now() / 1000)).first<{ user_id: string }>()
     if (!reset) return c.html(<ResetPassword t={t} token="" error={t.error_invalid_invite} />)
@@ -779,6 +839,66 @@ app.post('/admin/config', async (c) => {
         return c.redirect('/admin')
     } catch (e: any) {
         return c.text('Error updating config: ' + e.message, 500)
+    }
+})
+
+
+// --- 2FA Verification Routes ---
+app.get('/login/2fa', async (c) => {
+    const t = getLang(c)
+    const token = getCookie(c, 'pre_2fa_token')
+    if (!token) return c.redirect('/login')
+    
+    try {
+        await verify(token, c.env.JWT_SECRET || 'dev_secret')
+    } catch(e) {
+        return c.redirect('/login')
+    }
+    
+    const redirectTo = c.req.query('redirect_to')
+    return c.html(<Login2FA t={t} redirectTo={redirectTo} />)
+})
+
+app.post('/login/2fa', async (c) => {
+    const t = getLang(c)
+    const body = await c.req.parseBody()
+    const otp = (body['token'] as string).replace(/\s+/g, '')
+    const redirectTo = body['redirect_to'] as string
+    
+    const preToken = getCookie(c, 'pre_2fa_token')
+    if (!preToken) return c.redirect('/login')
+
+    let payload;
+    try {
+        payload = await verify(preToken, c.env.JWT_SECRET || 'dev_secret')
+    } catch (e) {
+        return c.redirect('/login')
+    }
+
+    const userId = payload.sub as string
+    const user = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first<User>()
+    
+    if (!user || !user.two_factor_secret) return c.redirect('/login')
+
+    if (verifyToken(otp, user.two_factor_secret)) {
+        // 2FA Success: Issue real session
+        const sessionId = generateToken()
+        const expires = Math.floor(Date.now() / 1000) + 2592000
+        await c.env.DB.prepare('INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)').bind(sessionId, user.id, expires).run()
+        setCookie(c, '__Host-idp_session', sessionId, getCookieOptions(expires))
+        
+        // Clear pre-auth token
+        deleteCookie(c, 'pre_2fa_token')
+
+        const details = JSON.stringify({ key: 'log_login', params: { email: user.email, method: '2FA' } });
+        await c.env.DB.prepare('INSERT INTO audit_logs (event_type, details) VALUES (?, ?)').bind('LOGIN', details).run()
+
+        if (redirectTo) return issueCodeAndRedirect(c, user.id, redirectTo)
+
+        const admin = await c.env.DB.prepare('SELECT * FROM admins WHERE email = ?').bind(user.email).first()
+        return c.redirect(admin ? '/admin' : '/')
+    } else {
+        return c.html(<Login2FA t={t} redirectTo={redirectTo} error={t.err_invalid_code} />)
     }
 })
 
