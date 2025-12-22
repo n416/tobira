@@ -16,9 +16,9 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240208.0",
     "@types/bcryptjs": "^2.4.6",
-    "typescript": "^5.0.0",
-    "wrangler": "^3.0.0",
     "@types/node": "^20.0.0",
-    "@types/qrcode": "^1.5.5"
+    "@types/qrcode": "^1.5.5",
+    "typescript": "^5.0.0",
+    "wrangler": "^4.56.0"
   }
 }
