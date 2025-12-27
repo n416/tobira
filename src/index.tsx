@@ -33,24 +33,24 @@ const getLang = (c: any) => {
 }
 
 async function getSystemConfig(db: D1Database): Promise<SystemConfig> {
-  const config: SystemConfig = { 
-      appName: { ja: 'Tobira', en: 'Tobira' },
-      appSubtitle: { ja: 'Secure Identity Provider', en: 'Secure Identity Provider' }
-  };
-  try {
-    const { results } = await db.prepare('SELECT * FROM system_config').all<{ key: string, value: string }>();
-    if (results) {
-        results.forEach(r => {
-            if (r.key === 'app_name_ja') config.appName.ja = r.value;
-            if (r.key === 'app_name_en') config.appName.en = r.value;
-            if (r.key === 'app_subtitle_ja') config.appSubtitle.ja = r.value;
-            if (r.key === 'app_subtitle_en') config.appSubtitle.en = r.value;
-        });
+    const config: SystemConfig = {
+        appName: { ja: 'Tobira', en: 'Tobira' },
+        appSubtitle: { ja: 'Secure Identity Provider', en: 'Secure Identity Provider' }
+    };
+    try {
+        const { results } = await db.prepare('SELECT * FROM system_config').all<{ key: string, value: string }>();
+        if (results) {
+            results.forEach(r => {
+                if (r.key === 'app_name_ja') config.appName.ja = r.value;
+                if (r.key === 'app_name_en') config.appName.en = r.value;
+                if (r.key === 'app_subtitle_ja') config.appSubtitle.ja = r.value;
+                if (r.key === 'app_subtitle_en') config.appSubtitle.en = r.value;
+            });
+        }
+    } catch (e) {
+        console.error('Config fetch failed:', e);
     }
-  } catch(e) {
-      console.error('Config fetch failed:', e);
-  }
-  return config;
+    return config;
 }
 
 function getLocalizedValue(c: any, text: LocalizedText): string {
@@ -175,7 +175,7 @@ app.post('/login', async (c) => {
         // Create a temporary token valid for 5 minutes
         const token = await sign({ sub: user.id, role: 'pre_2fa', exp: Math.floor(Date.now() / 1000) + 300 }, secret)
         setCookie(c, 'pre_2fa_token', token, { path: '/', secure: true, httpOnly: true, maxAge: 300, sameSite: 'Lax' })
-        
+
         let target = '/login/2fa'
         if (redirectTo) target += '?redirect_to=' + encodeURIComponent(redirectTo)
         return c.redirect(target)
@@ -219,6 +219,15 @@ async function issueCodeAndRedirect(c: any, userId: string, redirectTo: string) 
 app.get('/logout', async (c) => {
     const sessionId = getCookie(c, '__Host-idp_session')
     if (sessionId) {
+        // 1. セッションIDからユーザーを特定
+        const session = await c.env.DB.prepare('SELECT user_id FROM sessions WHERE id = ?').bind(sessionId).first<Session>()
+
+        if (session) {
+            // ★追加: このユーザーに紐付く「全アプリの連携トークン」も削除する (＝全アプリから強制ログアウト)
+            await c.env.DB.prepare('DELETE FROM app_sessions WHERE user_id = ?').bind(session.user_id).run()
+        }
+
+        // 2. Tobira本体のセッションを削除
         try { await c.env.DB.prepare('DELETE FROM sessions WHERE id = ?').bind(sessionId).run() } catch (e) { }
     }
     setCookie(c, '__Host-idp_session', '', { path: '/', secure: true, httpOnly: true, expires: new Date(0) })
@@ -230,10 +239,10 @@ app.get('/user/2fa/setup', async (c) => {
     const user = await getUser(c)
     if (!user) return c.redirect('/login')
     const t = getLang(c)
-    
+
     const secret = generateSecret()
     const qrCode = await generateQRCode(secret, user.email, 'Tobira')
-    
+
     return c.html(<Setup2FA t={t} qrCodeDataUrl={qrCode} secret={secret} />)
 })
 
@@ -244,7 +253,7 @@ app.post('/user/2fa/setup', async (c) => {
     const body = await c.req.parseBody()
     const token = (body['token'] as string).replace(/\s+/g, '')
     const secret = body['secret'] as string // In a real app, store this in session/temp-storage, not hidden field
-    
+
     if (verifyToken(token, secret)) {
         await c.env.DB.prepare('UPDATE users SET two_factor_secret = ? WHERE id = ?').bind(secret, user.id).run()
         const details = JSON.stringify({ key: 'log_2fa_enable', params: { email: user.email } });
@@ -259,12 +268,12 @@ app.post('/user/2fa/setup', async (c) => {
 app.post('/user/2fa/disable', async (c) => {
     const user = await getUser(c)
     if (!user) return c.redirect('/login')
-    
+
     await c.env.DB.prepare('UPDATE users SET two_factor_secret = NULL WHERE id = ?').bind(user.id).run()
-    
+
     const details = JSON.stringify({ key: 'log_2fa_disable', params: { email: user.email } });
     await c.env.DB.prepare('INSERT INTO audit_logs (event_type, details) VALUES (?, ?)').bind('2FA_DISABLE', details).run()
-    
+
     return c.redirect('/?msg=msg_2fa_disabled')
 })
 
@@ -848,13 +857,13 @@ app.get('/login/2fa', async (c) => {
     const t = getLang(c)
     const token = getCookie(c, 'pre_2fa_token')
     if (!token) return c.redirect('/login')
-    
+
     try {
         await verify(token, c.env.JWT_SECRET || 'dev_secret')
-    } catch(e) {
+    } catch (e) {
         return c.redirect('/login')
     }
-    
+
     const redirectTo = c.req.query('redirect_to')
     return c.html(<Login2FA t={t} redirectTo={redirectTo} />)
 })
@@ -864,7 +873,7 @@ app.post('/login/2fa', async (c) => {
     const body = await c.req.parseBody()
     const otp = (body['token'] as string).replace(/\s+/g, '')
     const redirectTo = body['redirect_to'] as string
-    
+
     const preToken = getCookie(c, 'pre_2fa_token')
     if (!preToken) return c.redirect('/login')
 
@@ -877,7 +886,7 @@ app.post('/login/2fa', async (c) => {
 
     const userId = payload.sub as string
     const user = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first<User>()
-    
+
     if (!user || !user.two_factor_secret) return c.redirect('/login')
 
     if (verifyToken(otp, user.two_factor_secret)) {
@@ -886,7 +895,7 @@ app.post('/login/2fa', async (c) => {
         const expires = Math.floor(Date.now() / 1000) + 86400
         await c.env.DB.prepare('INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)').bind(sessionId, user.id, expires).run()
         setCookie(c, '__Host-idp_session', sessionId, getCookieOptions(expires))
-        
+
         // Clear pre-auth token
         deleteCookie(c, 'pre_2fa_token')
 
