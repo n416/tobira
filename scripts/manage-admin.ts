@@ -43,10 +43,9 @@ async function main() {
         password_hash = excluded.password_hash,
         updated_at = excluded.updated_at;
 
-      INSERT INTO admins (email, password_hash) 
-      VALUES ('${email}', '${pwHash}')
-      ON CONFLICT(email) DO UPDATE SET 
-        password_hash = excluded.password_hash;
+      INSERT INTO admins (email) 
+      VALUES ('${email}')
+      ON CONFLICT(email) DO NOTHING;
     `.replace(/\n/g, ' ')
   
   } else if (command === 'delete') {
@@ -59,7 +58,7 @@ async function main() {
     if (!password) { console.error('Error: Password required'); process.exit(1); }
     const pwHash = await hash(password, 10)
     actionName = `Reset Password (${email})`
-    sql = `UPDATE users SET password_hash = '${pwHash}', updated_at = ${timestamp} WHERE email = '${email}'; UPDATE admins SET password_hash = '${pwHash}' WHERE email = '${email}';`.replace(/\n/g, ' ')
+    sql = `UPDATE users SET password_hash = '${pwHash}', updated_at = ${timestamp} WHERE email = '${email}'; `.replace(/\n/g, ' ')
 
   } else {
     printUsage()

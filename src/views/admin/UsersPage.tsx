@@ -628,6 +628,12 @@ export const UsersPage = (props: Props) => {
 
           <script>
           ${scriptContent}
+          ${props.inviteUrl ? raw(`
+            window.addEventListener('DOMContentLoaded', function() {
+                var modal = document.getElementById('invite-modal');
+                if(modal) modal.showModal();
+            });
+          `) : ''}
           </script>
       </div>
     `
