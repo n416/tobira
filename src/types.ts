@@ -20,6 +20,8 @@ export interface App {
   name: string
   base_url: string
   status: string // 'active' | 'inactive'
+  icon_url?: string
+  description?: string
   created_at: number
 }
 

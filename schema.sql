@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS apps (
     name TEXT NOT NULL,
     base_url TEXT NOT NULL,
     status TEXT DEFAULT 'active',
+    icon_url TEXT,
+    description TEXT,
     created_at INTEGER NOT NULL
 );
 

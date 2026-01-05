@@ -133,8 +133,12 @@ export const UserDashboard = (props: Props) => {
                         <a href="/login?redirect_to=${app.base_url}" class="${appCardLinkClass}">
                             <div class="${appCardContentClass}">
                                 <div>
-                                    <div class="${appNameClass}">${app.name}</div>
-                                    <div class="${appUrlClass}">${app.base_url}</div>
+                                    <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem;">
+                                        ${app.icon_url ? html`<img src="${app.icon_url}" style="width:40px; height:40px; border-radius:8px; object-fit:contain; background:white; padding:2px; box-shadow:0 1px 2px rgba(0,0,0,0.05);">` : ''}
+                                        <div class="${appNameClass}" style="margin-bottom:0;">${app.name}</div>
+                                    </div>
+                                    ${app.description ? html`<div style="font-size:0.9rem; color:var(--text-sub); margin-bottom:1rem; line-height:1.4;">${app.description}</div>` : ''}
+                                    <div class="${appUrlClass}" style="margin-bottom:0; opacity:0.7;">${app.base_url}</div>
                                 </div>
                                 <div style="text-align: right;">
                                     <span style="font-size: 0.9rem; font-weight: 600; color: var(--primary);">Login &rarr;</span>
