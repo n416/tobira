@@ -495,7 +495,7 @@ app.post('/admin/invite', async (c) => {
     const email = body['email'] as string
     if (!email) return c.redirect('/admin/users?error=Email required')
     const token = generateToken()
-    const expiresAt = Math.floor(Date.now() / 1000) + 86400
+    const expiresAt = Math.floor(Date.now() / 1000) + (86400 * 30)
     try { await c.env.DB.prepare('INSERT INTO invitations (id, email, invited_by, expires_at) VALUES (?, ?, ?, ?)').bind(token, email, user.id, expiresAt).run() }
     catch (e: any) { return c.redirect(`/admin/users?error=${encodeURIComponent('Error: ' + e.message)}`) }
     const url = new URL(c.req.url)
