@@ -98,6 +98,56 @@ export const AppsPage = (props: Props) => {
             window.closeEditAppModal = function() {
                 if(editModal) editModal.close();
             };
+            // Toggle App Status
+            var toggleTargetId = null;
+            var toggleTargetStatus = null;
+            window.toggleAppStatus = function(id, nextStatus, name) {
+                toggleTargetId = id;
+                toggleTargetStatus = nextStatus;
+                var tm = document.getElementById('toggle-confirm-modal');
+                if(tm) {
+                    var msgEl = document.getElementById('toggle-msg-text');
+                    var tmpl = i18n.confirmChangeStatus || 'Change status?';
+                    if(msgEl) msgEl.innerText = tmpl.replace('{name}', name);
+                    tm.showModal();
+                }
+            };
+            window.closeToggleModal = function() {
+                var tm = document.getElementById('toggle-confirm-modal');
+                if(tm) tm.close();
+                toggleTargetId = null;
+                toggleTargetStatus = null;
+            };
+            window.executeToggle = function() {
+                if(!toggleTargetId) return;
+                var form = document.getElementById('toggle-app-form');
+                if(form) {
+                    form.querySelector('input[name="id"]').value = toggleTargetId;
+                    form.querySelector('input[name="status"]').value = toggleTargetStatus;
+                    form.submit();
+                }
+            };
+
+            // Delete App
+            var deleteTargetId = null;
+            window.deleteApp = function(id) {
+                deleteTargetId = id;
+                var dm = document.getElementById('delete-confirm-modal');
+                if(dm) dm.showModal();
+            };
+            window.closeDeleteModal = function() {
+                var dm = document.getElementById('delete-confirm-modal');
+                if(dm) dm.close();
+                deleteTargetId = null;
+            };
+            window.executeDelete = function() {
+                if(!deleteTargetId) return;
+                var form = document.getElementById('delete-app-form');
+                if(form) {
+                    form.querySelector('input[name="id"]').value = deleteTargetId;
+                    form.submit();
+                }
+            };
         })();
   `);
 
@@ -202,6 +252,14 @@ export const AppsPage = (props: Props) => {
         `
       })}
 
+      <form id="toggle-app-form" method="POST" action="/admin/apps/toggle">
+        <input type="hidden" name="id" value="" />
+        <input type="hidden" name="status" value="" />
+      </form>
+      <form id="delete-app-form" method="POST" action="/admin/apps/delete">
+        <input type="hidden" name="id" value="" />
+      </form>
+
       <div class="${listGrid}">
         ${props.apps.map(app => html`
           <div class="${listCard}" 
@@ -230,20 +288,13 @@ export const AppsPage = (props: Props) => {
             </div>
             
             <div style="display: flex; gap: 0.5rem; align-items: center;">
-                <form method="POST" action="/admin/apps/toggle" style="margin:0;" onsubmit="return confirm('${(t.confirm_change_status || 'Change status?').replace('{name}', app.name).replace(/\\n/g, '\\\\n')}')" onclick="event.stopPropagation()">
-                    <input type="hidden" name="id" value="${app.id}" />
-                    <input type="hidden" name="status" value="${app.status === 'inactive' ? 'active' : 'inactive'}" />
-                    <button class="${actionBtn}" title="${app.status === 'inactive' ? t.btn_resume : t.btn_pause}">
-                        <span class="material-symbols-outlined">${app.status === 'inactive' ? 'play_arrow' : 'pause'}</span>
-                    </button>
-                </form>
+                <button type="button" class="${actionBtn}" title="${app.status === 'inactive' ? t.btn_resume : t.btn_pause}" onclick="event.stopPropagation(); toggleAppStatus('${app.id}', '${app.status === 'inactive' ? 'active' : 'inactive'}', '${app.name}')">
+                    <span class="material-symbols-outlined">${app.status === 'inactive' ? 'play_arrow' : 'pause'}</span>
+                </button>
                 
-                <form method="POST" action="/admin/apps/delete" style="margin:0;" onsubmit="return confirm('${t.confirm_delete_app.replace(/\\n/g, '\\\\n')}')" onclick="event.stopPropagation()">
-                    <input type="hidden" name="id" value="${app.id}" />
-                    <button class="${deleteBtn}" title="${t.delete}">
-                        <span class="material-symbols-outlined">delete</span>
-                    </button>
-                </form>
+                <button type="button" class="${deleteBtn}" title="${t.delete}" onclick="event.stopPropagation(); deleteApp('${app.id}')">
+                    <span class="material-symbols-outlined">delete</span>
+                </button>
             </div>
           </div>
         `)}
@@ -291,6 +342,44 @@ export const AppsPage = (props: Props) => {
               </form>
         `
       })}
+
+      ${Modal({
+        id: "toggle-confirm-modal",
+        title: html`<span style="color:#d97706; display:flex; align-items:center; gap:0.5rem;"><span class="material-symbols-outlined">info</span> ${t.btn_change || 'Change Status'}</span>`,
+        closeAction: "closeToggleModal()",
+        children: html`
+              <div style="margin-bottom: 2rem;">
+                <p id="toggle-msg-text" style="color:#475569; font-size:1rem; line-height:1.5; white-space:pre-wrap;"></p>
+              </div>
+              <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+                  <button type="button" onclick="closeToggleModal()" style="background: transparent; color: #64748b; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer;">Cancel</button>
+                  <button type="button" onclick="executeToggle()" style="background: #d97706; color: white; border: none; border-radius: 8px; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                     <span class="material-symbols-outlined" style="font-size:18px;">check</span> Execute
+                  </button>
+              </div>
+        `
+      })}
+
+      ${Modal({
+        id: "delete-confirm-modal",
+        title: html`<span style="color:#ef4444; display:flex; align-items:center; gap:0.5rem;"><span class="material-symbols-outlined">warning</span> ${t.delete || 'Delete'}</span>`,
+        closeAction: "closeDeleteModal()",
+        children: html`
+              <div style="margin-bottom: 2rem;">
+                <p style="color:#475569; font-size:1rem; line-height:1.5; white-space:pre-wrap;">${t.confirm_delete_app || 'Are you sure you want to delete this app?'}</p>
+              </div>
+              <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+                  <button type="button" onclick="closeDeleteModal()" style="background: transparent; color: #64748b; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer;">Cancel</button>
+                  <button type="button" onclick="executeDelete()" style="background: #ef4444; color: white; border: none; border-radius: 8px; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                     <span class="material-symbols-outlined" style="font-size:18px;">delete</span> Delete
+                  </button>
+              </div>
+        `
+      })}
+
+      <div id="i18n-data" style="display:none;"
+        data-confirm-change-status="${t.confirm_change_status || 'Change status?'}"
+      ></div>
 
       <script>
       ${scriptContent}

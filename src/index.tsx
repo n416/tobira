@@ -87,23 +87,23 @@ async function handleIconUpload(body: any): Promise<string | null> {
 async function checkPermission(c: any, userId: string, appId: string): Promise<{ allowed: boolean, reason?: string }> {
     const now = Math.floor(Date.now() / 1000)
 
-    const app = await c.env.DB.prepare('SELECT status FROM apps WHERE id = ?').bind(appId).first<App>()
+    const app = await c.env.DB.prepare('SELECT status FROM apps WHERE id = ?').bind(appId).first() as App | null
     if (app && app.status === 'inactive') {
         return { allowed: false, reason: 'App is paused' }
     }
 
     const userPerm = await c.env.DB.prepare('SELECT * FROM permissions WHERE user_id = ? AND app_id = ?')
-        .bind(userId, appId).first<Permission>()
+        .bind(userId, appId).first() as Permission | null
 
     if (userPerm) {
         if (userPerm.valid_from <= now && userPerm.valid_to >= now) return { allowed: true }
         else return { allowed: false, reason: 'User permission expired/invalid' }
     }
 
-    const user = await c.env.DB.prepare('SELECT group_id FROM users WHERE id = ?').bind(userId).first<User>()
+    const user = await c.env.DB.prepare('SELECT group_id FROM users WHERE id = ?').bind(userId).first() as User | null
     if (user && user.group_id) {
         const groupPerm = await c.env.DB.prepare('SELECT * FROM group_permissions WHERE group_id = ? AND app_id = ?')
-            .bind(user.group_id, appId).first<Permission>()
+            .bind(user.group_id, appId).first() as Permission | null
         if (groupPerm && groupPerm.valid_from <= now && groupPerm.valid_to >= now) return { allowed: true }
     }
 
@@ -113,9 +113,9 @@ async function checkPermission(c: any, userId: string, appId: string): Promise<{
 async function getAdmin(c: any) {
     const sessionId = getCookie(c, '__Host-idp_session')
     if (!sessionId) return null
-    const session = await c.env.DB.prepare('SELECT user_id FROM sessions WHERE id = ?').bind(sessionId).first<Session>()
+    const session = await c.env.DB.prepare('SELECT user_id FROM sessions WHERE id = ?').bind(sessionId).first() as Session | null
     if (!session) return null
-    const user = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(session.user_id).first<User>()
+    const user = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(session.user_id).first() as User | null
     const admin = await c.env.DB.prepare('SELECT * FROM admins WHERE email = ?').bind(user?.email).first()
     return admin ? user : null
 }
@@ -123,9 +123,9 @@ async function getAdmin(c: any) {
 async function getUser(c: any) {
     const sessionId = getCookie(c, '__Host-idp_session')
     if (!sessionId) return null
-    const session = await c.env.DB.prepare('SELECT user_id FROM sessions WHERE id = ? AND expires_at > ?').bind(sessionId, Math.floor(Date.now() / 1000)).first<Session>()
+    const session = await c.env.DB.prepare('SELECT user_id FROM sessions WHERE id = ? AND expires_at > ?').bind(sessionId, Math.floor(Date.now() / 1000)).first() as Session | null
     if (!session) return null
-    return await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(session.user_id).first<User>()
+    return await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(session.user_id).first() as User | null
 }
 
 // ------------------------------------------------------------------
@@ -187,7 +187,7 @@ app.post('/login', async (c) => {
     const password = body['password'] as string
     const redirectTo = body['redirect_to'] as string
 
-    const user = await c.env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first<User>()
+    const user = await c.env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first() as User | null
     if (!user || !(await verifyPassword(password, user.password_hash))) {
         return c.html(<Login t={t} redirectTo={redirectTo} error={t.error_credentials} siteName={siteName} siteSubtitle={siteSubtitle} />)
     }
@@ -218,7 +218,7 @@ app.post('/login', async (c) => {
 })
 
 async function issueCodeAndRedirect(c: any, userId: string, redirectTo: string) {
-    const { results } = await c.env.DB.prepare('SELECT * FROM apps WHERE status = ?').bind('active').all<App>()
+    const { results } = await c.env.DB.prepare('SELECT * FROM apps WHERE status = ?').bind('active').all() as any
     const app = (results as App[]).find(a => redirectTo.startsWith(a.base_url))
 
     if (!app) {
@@ -240,7 +240,7 @@ async function issueCodeAndRedirect(c: any, userId: string, redirectTo: string) 
 app.get('/logout', async (c) => {
     const sessionId = getCookie(c, '__Host-idp_session')
     if (sessionId) {
-        const session = await c.env.DB.prepare('SELECT user_id FROM sessions WHERE id = ?').bind(sessionId).first<Session>()
+        const session = await c.env.DB.prepare('SELECT user_id FROM sessions WHERE id = ?').bind(sessionId).first() as Session | null
         if (session) {
             await c.env.DB.prepare('DELETE FROM app_sessions WHERE user_id = ?').bind(session.user_id).run()
         }
@@ -318,7 +318,7 @@ app.post('/api/token', async (c) => {
     const body = await c.req.json().catch(() => { })
     const code = body['code']
     if (!code) return c.json({ error: 'Missing code' }, 400)
-    const authCode = await c.env.DB.prepare('SELECT * FROM auth_codes WHERE code = ?').bind(code).first<AuthCode>()
+    const authCode = await c.env.DB.prepare('SELECT * FROM auth_codes WHERE code = ?').bind(code).first() as AuthCode | null
     if (!authCode || authCode.expires_at < Date.now() / 1000 || authCode.used_at) return c.json({ error: 'Invalid code' }, 400)
     await c.env.DB.prepare('UPDATE auth_codes SET used_at = ? WHERE code = ?').bind(Date.now() / 1000, code).run()
     const token = generateToken()
@@ -565,7 +565,7 @@ app.post('/admin/users/bulk', async (c) => {
 app.get('/admin/api/user-details/:id', async (c) => {
     if (!await getAdmin(c)) return c.json({ error: 'Unauthorized' }, 401)
     const userId = c.req.param('id')
-    const user = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first<User>()
+    const user = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first() as User | null
     if (!user) return c.json({ error: 'Not found' }, 404)
     const { results: direct } = await c.env.DB.prepare('SELECT p.*, a.name as app_name FROM permissions p JOIN apps a ON p.app_id = a.id WHERE p.user_id = ?').bind(userId).all()
     let groupPerms: any[] = []
@@ -758,7 +758,7 @@ app.post('/forgot-password', async (c) => {
     const t = getLang(c)
     const body = await c.req.parseBody()
     const email = body['email'] as string
-    const user = await c.env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first<User>()
+    const user = await c.env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first() as User | null
     if (user) {
         const token = generateToken()
         const expires = Math.floor(Date.now() / 1000) + 3600
@@ -770,12 +770,12 @@ app.post('/forgot-password', async (c) => {
         <p>You requested a password reset. Please click the link below to set a new password:</p>
         <p><a href="${resetLink}" style="color: #0288d1; word-break: break-all;">${resetLink}</a></p>
         <p>This link will expire in 1 hour.</p>
-        <p><strong>パスワードリセット</strong></p>
-        <p>パスワードリセットのリクエストを受け付けました。以下のリンクをクリックして、新しいパスワードを設定してください。</p>
+        <p><strong>パスワードリセチE��</strong></p>
+        <p>パスワードリセチE��のリクエストを受け付けました。以下�EリンクをクリチE��して、新しいパスワードを設定してください、E/p>
         <p><a href="${resetLink}" style="color: #0288d1; word-break: break-all;">${resetLink}</a></p>
       </div>
     `;
-        await sendEmail(c.env, email, 'Password Reset / パスワードリセット', htmlBody);
+        await sendEmail(c.env, email, 'Password Reset / パスワードリセチE��', htmlBody);
     }
     return c.html(<ForgotPassword t={t} message={t.link_sent} />)
 })
@@ -841,7 +841,7 @@ app.post('/login/2fa', async (c) => {
     let payload;
     try { payload = await verify(preToken, c.env.JWT_SECRET || 'dev_secret') } catch (e) { return c.redirect('/login') }
     const userId = payload.sub as string
-    const user = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first<User>()
+    const user = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first() as User | null
     if (!user || !user.two_factor_secret) return c.redirect('/login')
     if (verifyToken(otp, user.two_factor_secret)) {
         const sessionId = generateToken()

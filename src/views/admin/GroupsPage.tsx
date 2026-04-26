@@ -192,22 +192,100 @@ export const GroupsPage = (props: Props) => {
                     warningMessages.push('・' + existing.app_name + ' (' + exStart + ' ～ ' + exEnd + ')');
                 }
             });
+            
+            var validTo = dateVal ? Math.floor(new Date(dateVal).getTime()/1000) : Math.floor(Date.now()/1000) + 315360000;
+            var validFrom = startVal ? Math.floor(new Date(startVal).getTime()/1000) : Math.floor(Date.now()/1000);
+            
+            var doGrant = function() {
+                fetch('/admin/api/group/permission/grant', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ group_id: currentGroupId, app_ids: appIds, valid_from: validFrom, valid_to: validTo }) })
+                .then(function() { window.loadGroupPerms(currentGroupId); if(tsControl) tsControl.clear(); })
+                .catch(function(e) { console.error(e); alert('Error: ' + e); });
+            };
+
             if (warningMessages.length > 0) {
                 var msgTemplate = i18n.msgOverwriteConfirm || 'Overwrite?\\\\n{list}';
                 var listStr = warningMessages.join('\\\\n');
                 var msg = msgTemplate.replace('{start}', dateStrStart).replace('{end}', dateStrEnd).replace('{list}', listStr);
-                if (!confirm(msg)) return;
+                
+                var om = document.getElementById('overwrite-confirm-modal');
+                if(om) {
+                    document.getElementById('overwrite-msg-text').innerText = msg;
+                    window._executeOverwrite = function() {
+                        om.close();
+                        doGrant();
+                    };
+                    om.showModal();
+                    return;
+                }
             }
-            var validTo = dateVal ? Math.floor(new Date(dateVal).getTime()/1000) : Math.floor(Date.now()/1000) + 315360000;
-            var validFrom = startVal ? Math.floor(new Date(startVal).getTime()/1000) : Math.floor(Date.now()/1000);
-            fetch('/admin/api/group/permission/grant', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ group_id: currentGroupId, app_ids: appIds, valid_from: validFrom, valid_to: validTo }) })
-            .then(function() { window.loadGroupPerms(currentGroupId); if(tsControl) tsControl.clear(); });
+            doGrant();
         };
+
+        var revokeTargetId = null;
         window.revokeGroupPerm = function(pid) {
-            if(!confirm(i18n.msgRevoke || 'Revoke?')) return;
-            fetch('/admin/api/group/permission/revoke', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id: pid}) })
-            .then(function() { window.loadGroupPerms(currentGroupId); });
+            revokeTargetId = pid;
+            var errEl = document.getElementById('revoke-error-msg');
+            if(errEl) errEl.style.display = 'none';
+            var rm = document.getElementById('revoke-confirm-modal');
+            if(rm) {
+                rm.showModal();
+                setTimeout(function() { var closeBtn = document.getElementById('revoke-close-btn'); if(closeBtn) closeBtn.focus(); }, 50);
+            }
         };
+        window.closeRevokeModal = function() {
+            var rm = document.getElementById('revoke-confirm-modal');
+            if(rm) rm.close();
+            revokeTargetId = null;
+        };
+        window.executeRevoke = function() {
+            if(!revokeTargetId) return;
+            var errEl = document.getElementById('revoke-error-msg');
+            if(errEl) errEl.style.display = 'none';
+            
+            fetch('/admin/api/group/permission/revoke', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id: revokeTargetId}) })
+            .then(function(r) { 
+                if(!r.ok) {
+                    return r.json().catch(function(){ return {}; }).then(function(err) { throw new Error(err.error || 'Server error ' + r.status); });
+                }
+                return r.json(); 
+            })
+            .then(function() { 
+                window.closeRevokeModal();
+                window.loadGroupPerms(currentGroupId); 
+            })
+            .catch(function(e) {
+                console.error('Revoke error:', e);
+                if(errEl) {
+                    var tmpl = i18n.alertError || 'Error: {message}';
+                    errEl.textContent = tmpl.replace('{message}', e.message);
+                    errEl.style.display = 'block';
+                } else {
+                    alert('Error: ' + e.message);
+                }
+            });
+        };
+
+        var deleteTargetId = null;
+        window.deleteGroup = function(gid, e) {
+            if(e) e.stopPropagation();
+            deleteTargetId = gid;
+            var dm = document.getElementById('delete-confirm-modal');
+            if(dm) dm.showModal();
+        };
+        window.closeDeleteModal = function() {
+            var dm = document.getElementById('delete-confirm-modal');
+            if(dm) dm.close();
+            deleteTargetId = null;
+        };
+        window.executeDelete = function() {
+            if(!deleteTargetId) return;
+            var form = document.getElementById('delete-group-form');
+            if (!form) return;
+            var input = form.querySelector('input[name="id"]');
+            if(input) input.value = deleteTargetId;
+            form.submit();
+        };
+
         window.calcGroupDate = function(targetId, offset, unit) {
             var d = new Date();
             if (unit === 'forever') { var el = document.getElementById(targetId); if(el) el.value = ''; return; }
@@ -346,6 +424,10 @@ export const GroupsPage = (props: Props) => {
 
           <hr />
 
+          <form id="delete-group-form" method="POST" action="/admin/groups/delete">
+            <input type="hidden" name="id" value="" />
+          </form>
+
           <div class="${listGrid}">
             ${props.groups.length === 0 ? html`<div style="text-align:center; padding:2rem; color:#94a3b8;">${t.no_groups}</div>` : ''}
             ${props.groups.map((g) => {
@@ -355,12 +437,9 @@ export const GroupsPage = (props: Props) => {
                     <div class="${itemTitle}">${g.name}</div>
                 </div>
                 <div>
-                    <form method="POST" action="/admin/groups/delete" style="margin:0;" onsubmit="return confirm('${t.confirm_delete_group.replace(/\\n/g, '\\\\n')}')" onclick="event.stopPropagation()">
-                         <input type="hidden" name="id" value="${g.id}" />
-                         <button class="${deleteBtn}" title="${t.delete}">
-                            <span class="material-symbols-outlined">delete</span>
-                         </button>
-                    </form>
+                     <button type="button" class="${deleteBtn}" title="${t.delete}" onclick="deleteGroup('${g.id}', event)">
+                        <span class="material-symbols-outlined">delete</span>
+                     </button>
                 </div>
               </div>
             `})}
@@ -413,6 +492,59 @@ export const GroupsPage = (props: Props) => {
                  <h4 style="font-size:1.1rem; margin:2rem 0 1rem; font-weight:600; color:#334155;">${t.header_active_permissions}</h4>
                  
                  <div id="modal-g-perm-list"></div>
+            `
+          })}
+
+          ${Modal({
+            id: "revoke-confirm-modal",
+            title: html`<span style="color:#ef4444; display:flex; align-items:center; gap:0.5rem;"><span class="material-symbols-outlined">warning</span> ${t.confirm_revoke_permission || 'Revoke Permission'}</span>`,
+            closeAction: "closeRevokeModal()",
+            closeBtnId: "revoke-close-btn",
+            children: html`
+                  <div style="margin-bottom: 2rem;">
+                    <p style="color:#475569; font-size:1rem; line-height:1.5;">${t.confirm_revoke_permission || 'Are you sure you want to revoke this permission?'}</p>
+                    <div id="revoke-error-msg" style="margin-top: 1rem; padding: 0.75rem; background: #fef2f2; color: #b91c1c; border-radius: 6px; border: 1px solid #fecaca; display: none;"></div>
+                  </div>
+                  <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+                      <button type="button" onclick="closeRevokeModal()" style="background: transparent; color: #64748b; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer;">Cancel</button>
+                      <button type="button" onclick="executeRevoke()" style="background: #ef4444; color: white; border: none; border-radius: 8px; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                         <span class="material-symbols-outlined" style="font-size:18px;">delete</span> Revoke
+                      </button>
+                  </div>
+            `
+          })}
+
+          ${Modal({
+            id: "delete-confirm-modal",
+            title: html`<span style="color:#ef4444; display:flex; align-items:center; gap:0.5rem;"><span class="material-symbols-outlined">warning</span> ${t.delete || 'Delete'}</span>`,
+            closeAction: "closeDeleteModal()",
+            children: html`
+                  <div style="margin-bottom: 2rem;">
+                    <p style="color:#475569; font-size:1rem; line-height:1.5; white-space:pre-wrap;">${t.confirm_delete_group || 'Are you sure you want to delete this group?'}</p>
+                  </div>
+                  <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+                      <button type="button" onclick="closeDeleteModal()" style="background: transparent; color: #64748b; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer;">Cancel</button>
+                      <button type="button" onclick="executeDelete()" style="background: #ef4444; color: white; border: none; border-radius: 8px; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                         <span class="material-symbols-outlined" style="font-size:18px;">delete</span> Delete
+                      </button>
+                  </div>
+            `
+          })}
+
+          ${Modal({
+            id: "overwrite-confirm-modal",
+            title: html`<span style="color:#d97706; display:flex; align-items:center; gap:0.5rem;"><span class="material-symbols-outlined">warning</span> ${t.confirm_overwrite || 'Overwrite?'}</span>`,
+            closeAction: "this.closest('dialog').close()",
+            children: html`
+                  <div style="margin-bottom: 2rem;">
+                    <p id="overwrite-msg-text" style="color:#475569; font-size:1rem; line-height:1.5; white-space:pre-wrap;"></p>
+                  </div>
+                  <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+                      <button type="button" onclick="this.closest('dialog').close()" style="background: transparent; color: #64748b; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer;">Cancel</button>
+                      <button type="button" onclick="window._executeOverwrite()" style="background: #d97706; color: white; border: none; border-radius: 8px; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                         <span class="material-symbols-outlined" style="font-size:18px;">check</span> Overwrite
+                      </button>
+                  </div>
             `
           })}
 

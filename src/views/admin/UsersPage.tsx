@@ -201,11 +201,13 @@ export const UsersPage = (props: Props) => {
                     
                     if (p.source === 'user') {
                         var btnEdit = document.createElement('button');
+                        btnEdit.type = 'button';
                         btnEdit.className = 'action-btn';
                         btnEdit.innerHTML = '<span class="material-symbols-outlined">edit</span>';
                         btnEdit.onclick = function() { window.editPerm(p.app_id, p.valid_from, p.valid_to); };
                         right.appendChild(btnEdit);
                         var btnRevoke = document.createElement('button');
+                        btnRevoke.type = 'button';
                         btnRevoke.className = 'action-btn delete';
                         btnRevoke.innerHTML = '<span class="material-symbols-outlined">delete</span>';
                         btnRevoke.onclick = function() { window.revokePerm(p.id); };
@@ -261,10 +263,48 @@ export const UsersPage = (props: Props) => {
                     alert(tmpl.replace('{message}', e)); 
                 });
             };
+            var revokeTargetId = null;
             window.revokePerm = function(pid) {
-                if(!confirm(i18n.msgRevoke || 'Revoke?')) return;
-                fetch('/admin/api/user/permission/revoke', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id: pid}) })
-                .then(function() { window.openUserModal(currentUserId); });
+                revokeTargetId = pid;
+                var errEl = document.getElementById('revoke-error-msg');
+                if(errEl) errEl.style.display = 'none';
+                var rm = document.getElementById('revoke-confirm-modal');
+                if(rm) {
+                    rm.showModal();
+                    setTimeout(function() { var closeBtn = document.getElementById('revoke-close-btn'); if(closeBtn) closeBtn.focus(); }, 50);
+                }
+            };
+            window.closeRevokeModal = function() {
+                var rm = document.getElementById('revoke-confirm-modal');
+                if(rm) rm.close();
+                revokeTargetId = null;
+            };
+            window.executeRevoke = function() {
+                if(!revokeTargetId) return;
+                var errEl = document.getElementById('revoke-error-msg');
+                if(errEl) errEl.style.display = 'none';
+                
+                fetch('/admin/api/user/permission/revoke', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id: revokeTargetId}) })
+                .then(function(r) { 
+                    if(!r.ok) {
+                        return r.json().catch(function(){ return {}; }).then(function(err) { throw new Error(err.error || 'Server error ' + r.status); });
+                    }
+                    return r.json(); 
+                })
+                .then(function() { 
+                    window.closeRevokeModal();
+                    window.openUserModal(currentUserId); 
+                })
+                .catch(function(e) {
+                    console.error('Revoke error:', e);
+                    if(errEl) {
+                        var tmpl = i18n.alertError || 'Error: {message}';
+                        errEl.textContent = tmpl.replace('{message}', e.message);
+                        errEl.style.display = 'block';
+                    } else {
+                        alert('Error: ' + e.message);
+                    }
+                });
             };
             window.updateUserGroup = function() {
                 var gid = document.getElementById('modal-group-select').value;
@@ -600,6 +640,27 @@ export const UsersPage = (props: Props) => {
                   </div>
 
                   <div id="modal-perm-list"></div>
+            `
+          })}
+
+          ${Modal({
+            id: "revoke-confirm-modal",
+            title: html`<span style="color:#ef4444; display:flex; align-items:center; gap:0.5rem;"><span class="material-symbols-outlined">warning</span> ${t.confirm_revoke_permission || 'Revoke Permission'}</span>`,
+            closeAction: "closeRevokeModal()",
+            closeBtnId: "revoke-close-btn",
+            children: html`
+                  <div style="margin-bottom: 2rem;">
+                    <p style="color:#475569; font-size:1rem; line-height:1.5;">${t.confirm_revoke_permission || 'Are you sure you want to revoke this permission?'}</p>
+                    <div id="revoke-error-msg" style="margin-top: 1rem; padding: 0.75rem; background: #fef2f2; color: #b91c1c; border-radius: 6px; border: 1px solid #fecaca; display: none;"></div>
+                  </div>
+                  <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+                      <button type="button" onclick="closeRevokeModal()" style="background: transparent; color: #64748b; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer;">
+                         Cancel
+                      </button>
+                      <button type="button" onclick="executeRevoke()" style="background: #ef4444; color: white; border: none; border-radius: 8px; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                         <span class="material-symbols-outlined" style="font-size:18px;">delete</span> Revoke
+                      </button>
+                  </div>
             `
           })}
 

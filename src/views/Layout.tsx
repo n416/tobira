@@ -4,8 +4,8 @@ import { Style } from 'hono/css'
 
 interface Props {
   title: string
-  lang: string
-  children: JSX.Element
+  lang?: string
+  children: any
 }
 
 export const Layout = (props: Props) => {

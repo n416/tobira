@@ -5,6 +5,7 @@ import { App } from '../types'
 import { Layout } from './components/Layout'
 import { Card } from './components/Card'
 import { Button } from './components/Button'
+import { Modal } from './components/Modal'
 
 interface Props {
   t: typeof dict.en
@@ -163,17 +164,34 @@ export const UserDashboard = (props: Props) => {
             <div>
                 ${props.has2FA
                     ? html`
-                        <form method="POST" action="/user/2fa/disable" style="margin:0; display:inline;" onsubmit="return confirm('${t.confirm_disable_2fa}')">
-                            <button type="submit" style="background: none; border: 1px solid #cbd5e1; color: #64748b; padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.85rem; cursor: pointer;">${t.btn_disable_2fa}</button>
+                        <form id="disable-2fa-form" method="POST" action="/user/2fa/disable" style="margin:0; display:inline;">
+                            <button type="button" onclick="document.getElementById('disable-2fa-modal').showModal()" style="background: none; border: 1px solid #cbd5e1; color: #64748b; padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.85rem; cursor: pointer;">${t.btn_disable_2fa}</button>
                         </form>`
                     : html`<a href="/user/2fa/setup" style="background: var(--primary); color: white; padding: 0.4rem 0.8rem; border-radius: 8px; text-decoration: none; font-size: 0.85rem; font-weight: 600;">${t.btn_setup_2fa}</a>`
                 }
             </div>
         </div>
         
-<div style="margin-top: 3rem; text-align: right;">
+        <div style="margin-top: 3rem; text-align: right;">
             <a href="/change-password" style="font-size: 0.9rem;">🔑 ${t.btn_change_password}</a>
         </div>
+        
+        ${Modal({
+            id: "disable-2fa-modal",
+            title: html`<span style="color:#d97706; display:flex; align-items:center; gap:0.5rem;"><span class="material-symbols-outlined">warning</span> ${t.btn_disable_2fa || 'Disable 2FA'}</span>`,
+            closeAction: "this.closest('dialog').close()",
+            children: html`
+                  <div style="margin-bottom: 2rem;">
+                    <p style="color:#475569; font-size:1rem; line-height:1.5;">${t.confirm_disable_2fa}</p>
+                  </div>
+                  <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+                      <button type="button" onclick="this.closest('dialog').close()" style="background: transparent; color: #64748b; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer;">Cancel</button>
+                      <button type="button" onclick="document.getElementById('disable-2fa-form').submit()" style="background: #d97706; color: white; border: none; border-radius: 8px; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                         <span class="material-symbols-outlined" style="font-size:18px;">check</span> Execute
+                      </button>
+                  </div>
+            `
+        })}
     `
   })
 }

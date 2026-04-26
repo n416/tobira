@@ -49,8 +49,8 @@ export const AdminDashboard = (props: Props) => {
         <article style={{ borderColor: '#2e7d32', backgroundColor: '#f1f8e9' }}>
           <header>✅ {t.invite_created}</header>
           <div class="grid">
-            <input type="text" value={props.inviteUrl} readonly onClick="this.select()" />
-            <button class="outline" onClick="navigator.clipboard.writeText(this.previousSibling.value)">Copy</button>
+            <input type="text" value={props.inviteUrl} readonly onclick="this.select()" />
+            <button class="outline" onclick="navigator.clipboard.writeText(this.previousSibling.value)">Copy</button>
           </div>
           <small>{t.invite_copy_hint}</small>
         </article>
@@ -63,7 +63,7 @@ export const AdminDashboard = (props: Props) => {
         <h3>📦 {t.section_apps}</h3>
         <article>
           <header><strong>{t.header_new_app}</strong></header>
-          <form method="POST" action="/admin/apps" style={{ marginBottom: 0 }}>
+          <form method="post" action="/admin/apps" style={{ marginBottom: 0 }}>
             <div class="grid">
               <label>
                 App ID
@@ -89,8 +89,8 @@ export const AdminDashboard = (props: Props) => {
           <table class="striped">
             <thead>
               <tr>
-                <th>{t.th_name}</th>
-                <th>{t.th_base_url}</th>
+                <th>{t.label_app_name}</th>
+                <th>{t.label_base_url}</th>
               </tr>
             </thead>
             <tbody>
@@ -113,7 +113,7 @@ export const AdminDashboard = (props: Props) => {
         <div class="grid">
           <article>
             <header><strong>{t.header_invite}</strong></header>
-            <form method="POST" action="/admin/invite" style={{ marginBottom: 0 }}>
+            <form method="post" action="/admin/invite" style={{ marginBottom: 0 }}>
               <div class="grid">
                 <input type="email" name="email" placeholder={t.placeholder_invite_email} required />
                 <button type="submit" class="secondary">{t.btn_generate_invite}</button>
@@ -135,11 +135,11 @@ export const AdminDashboard = (props: Props) => {
 
       {/* --- Section 3: Permissions (Full Width) --- */}
       <section>
-        <h3>🔑 {t.section_permissions}</h3>
+        <h3>🔑 {t.tab_permissions}</h3>
         
         <article>
           <header><strong>{t.header_grant_permission}</strong></header>
-          <form method="POST" action="/admin/permissions" style={{ marginBottom: 0 }}>
+          <form method="post" action="/admin/permissions" style={{ marginBottom: 0 }}>
             <div class="grid">
               <label>{t.label_user}
                 <select name="user_id" required>
@@ -185,7 +185,7 @@ export const AdminDashboard = (props: Props) => {
                   <td>{fmt(p.valid_from)}</td>
                   <td>{fmt(p.valid_to)}</td>
                   <td>
-                    <form method="POST" action="/admin/permissions/revoke" style={{margin:0}}>
+                    <form method="post" action="/admin/permissions/revoke" style={{margin:0}}>
                       <input type="hidden" name="id" value={p.id} />
                       <button type="submit" class="outline secondary" style={{padding: '0.2em 0.5em', fontSize: '0.8em'}}>Revoke</button>
                     </form>
