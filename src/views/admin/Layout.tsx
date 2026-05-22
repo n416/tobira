@@ -274,6 +274,14 @@ export const Layout = (props: LayoutProps) => {
             var overlay = document.querySelector('.sidebar-overlay');
             if(overlay) overlay.classList.toggle('visible');
         }
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.local-time').forEach(function(el) {
+                var ts = parseInt(el.getAttribute('data-timestamp'));
+                if (!isNaN(ts)) {
+                    el.textContent = new Date(ts).toLocaleString();
+                }
+            });
+        });
       </script>
     </body>
     </html>

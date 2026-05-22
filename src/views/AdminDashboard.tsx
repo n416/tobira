@@ -31,7 +31,7 @@ interface Props {
 export const AdminDashboard = (props: Props) => {
   const t = props.t
   
-  const fmt = (ts: number) => new Date(ts * 1000).toLocaleString()
+  const fmt = (ts: number) => <span class="local-time" data-timestamp={ts * 1000}>{new Date(ts * 1000).toLocaleString()}</span>
 
   return (
     <Layout title={t.title_dashboard} lang={t.lang}>

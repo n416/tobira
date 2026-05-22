@@ -80,7 +80,7 @@ export const LogsPage = (props: Props) => {
           <tbody>
             ${props.logs.map(log => html`
               <tr>
-                <td>${new Date(log.created_at * 1000).toLocaleString()}</td>
+                <td><span class="local-time" data-timestamp="${log.created_at * 1000}">${new Date(log.created_at * 1000).toLocaleString()}</span></td>
                 <td>
                     <small>${(t as any)['event_' + log.event_type] || log.event_type}</small>
                 </td>

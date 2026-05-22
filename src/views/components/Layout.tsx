@@ -114,6 +114,16 @@ export const Layout = (props: LayoutProps) => {
        <div class="${containerClass}">
          ${props.children}
        </div>
+       <script>
+         document.addEventListener('DOMContentLoaded', function() {
+             document.querySelectorAll('.local-time').forEach(function(el) {
+                 var ts = parseInt(el.getAttribute('data-timestamp'));
+                 if (!isNaN(ts)) {
+                     el.textContent = new Date(ts).toLocaleString();
+                 }
+             });
+         });
+       </script>
     </body>
     </html>
   `
