@@ -148,6 +148,7 @@ export const dict = {
     event_PASSWORD_CHANGE: 'Password Changed',
 
     log_login: 'User logged in: {email}',
+    log_login_app: 'User logged in: {email} (Target: {appName})',
     log_app_created: 'App "{appName}" ({id}) created by {admin}',
     log_app_updated: 'App "{appName}" updated (Status: {status}) by {admin}',
     log_app_deleted: 'App "{id}" deleted by {admin}',
@@ -361,6 +362,7 @@ export const dict = {
     event_PASSWORD_CHANGE: 'パスワード変更',
 
     log_login: 'ユーザーログイン: {email}',
+    log_login_app: 'ユーザーログイン: {email} (対象: {appName})',
     log_app_created: 'アプリ "{appName}" ({id}) 作成者: {admin}',
     log_app_updated: 'アプリ "{appName}" 更新 (状態: {status}) 実行: {admin}',
     log_app_deleted: 'アプリ "{id}" 削除 実行: {admin}',

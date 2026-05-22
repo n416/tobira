@@ -208,12 +208,21 @@ app.post('/login', async (c) => {
     await c.env.DB.prepare('INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)').bind(sessionId, user.id, expires).run()
     setCookie(c, '__Host-idp_session', sessionId, getCookieOptions(expires))
 
-    const details = JSON.stringify({ key: 'log_login', params: { email } });
+    let targetAppName = 'Tobira Dashboard';
+    const admin = await c.env.DB.prepare('SELECT * FROM admins WHERE email = ?').bind(email).first()
+    if (redirectTo) {
+        const { results } = await c.env.DB.prepare('SELECT * FROM apps WHERE status = ?').bind('active').all() as any;
+        const app = (results as any[]).find((a: any) => redirectTo.startsWith(a.base_url));
+        if (app) targetAppName = app.name;
+    } else if (admin) {
+        targetAppName = 'Tobira Admin';
+    }
+
+    const details = JSON.stringify({ key: 'log_login_app', params: { email, appName: targetAppName } });
     await c.env.DB.prepare('INSERT INTO audit_logs (event_type, details) VALUES (?, ?)').bind('LOGIN', details).run()
 
     if (redirectTo) return issueCodeAndRedirect(c, user.id, redirectTo)
 
-    const admin = await c.env.DB.prepare('SELECT * FROM admins WHERE email = ?').bind(email).first()
     return c.redirect(admin ? '/admin' : '/')
 })
 
@@ -770,12 +779,12 @@ app.post('/forgot-password', async (c) => {
         <p>You requested a password reset. Please click the link below to set a new password:</p>
         <p><a href="${resetLink}" style="color: #0288d1; word-break: break-all;">${resetLink}</a></p>
         <p>This link will expire in 1 hour.</p>
-        <p><strong>パスワードリセチE��</strong></p>
-        <p>パスワードリセチE��のリクエストを受け付けました。以下�EリンクをクリチE��して、新しいパスワードを設定してください、E/p>
+        <p><strong>繝代せ繝ｯ繝ｼ繝峨Μ繧ｻ繝・ヨ</strong></p>
+        <p>繝代せ繝ｯ繝ｼ繝峨Μ繧ｻ繝・ヨ縺ｮ繝ｪ繧ｯ繧ｨ繧ｹ繝医ｒ蜿励￠莉倥￠縺ｾ縺励◆縲ゆｻ･荳九・繝ｪ繝ｳ繧ｯ繧偵け繝ｪ繝・け縺励※縲∵眠縺励＞繝代せ繝ｯ繝ｼ繝峨ｒ險ｭ螳壹＠縺ｦ縺上□縺輔＞縲・/p>
         <p><a href="${resetLink}" style="color: #0288d1; word-break: break-all;">${resetLink}</a></p>
       </div>
     `;
-        await sendEmail(c.env, email, 'Password Reset / パスワードリセチE��', htmlBody);
+        await sendEmail(c.env, email, 'Password Reset / 繝代せ繝ｯ繝ｼ繝峨Μ繧ｻ繝・ヨ', htmlBody);
     }
     return c.html(<ForgotPassword t={t} message={t.link_sent} />)
 })
@@ -827,7 +836,7 @@ app.get('/login/2fa', async (c) => {
     const t = getLang(c)
     const token = getCookie(c, 'pre_2fa_token')
     if (!token) return c.redirect('/login')
-    try { await verify(token, c.env.JWT_SECRET || 'dev_secret') } catch (e) { return c.redirect('/login') }
+    try { await verify(token, c.env.JWT_SECRET || 'dev_secret', "HS256") } catch (e) { return c.redirect('/login') }
     const redirectTo = c.req.query('redirect_to')
     return c.html(<Login2FA t={t} redirectTo={redirectTo} />)
 })
@@ -839,7 +848,7 @@ app.post('/login/2fa', async (c) => {
     const preToken = getCookie(c, 'pre_2fa_token')
     if (!preToken) return c.redirect('/login')
     let payload;
-    try { payload = await verify(preToken, c.env.JWT_SECRET || 'dev_secret') } catch (e) { return c.redirect('/login') }
+    try { payload = await verify(preToken, c.env.JWT_SECRET || 'dev_secret', "HS256") } catch (e) { return c.redirect('/login') }
     const userId = payload.sub as string
     const user = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first() as User | null
     if (!user || !user.two_factor_secret) return c.redirect('/login')
@@ -849,10 +858,21 @@ app.post('/login/2fa', async (c) => {
         await c.env.DB.prepare('INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)').bind(sessionId, user.id, expires).run()
         setCookie(c, '__Host-idp_session', sessionId, getCookieOptions(expires))
         deleteCookie(c, 'pre_2fa_token')
-        const details = JSON.stringify({ key: 'log_login', params: { email: user.email, method: '2FA' } });
-        await c.env.DB.prepare('INSERT INTO audit_logs (event_type, details) VALUES (?, ?)').bind('LOGIN', details).run()
-        if (redirectTo) return issueCodeAndRedirect(c, user.id, redirectTo)
+
+        let targetAppName = 'Tobira Dashboard';
         const admin = await c.env.DB.prepare('SELECT * FROM admins WHERE email = ?').bind(user.email).first()
+        if (redirectTo) {
+            const { results } = await c.env.DB.prepare('SELECT * FROM apps WHERE status = ?').bind('active').all() as any;
+            const app = (results as any[]).find((a: any) => redirectTo.startsWith(a.base_url));
+            if (app) targetAppName = app.name;
+        } else if (admin) {
+            targetAppName = 'Tobira Admin';
+        }
+
+        const details = JSON.stringify({ key: 'log_login_app', params: { email: user.email, method: '2FA', appName: targetAppName } });
+        await c.env.DB.prepare('INSERT INTO audit_logs (event_type, details) VALUES (?, ?)').bind('LOGIN', details).run()
+
+        if (redirectTo) return issueCodeAndRedirect(c, user.id, redirectTo)
         return c.redirect(admin ? '/admin' : '/')
     } else {
         return c.html(<Login2FA t={t} redirectTo={redirectTo} error={t.err_invalid_code} />)
