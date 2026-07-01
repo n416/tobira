@@ -171,6 +171,19 @@ export const UserDashboard = (props: Props) => {
                 }
             </div>
         </div>
+
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.3); display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-sub);"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+                <span style="font-weight: 600; color: var(--text-main);">パスキー (生体認証):</span>
+            </div>
+            <div>
+                <button type="button" id="registerPasskeyBtn" style="background: var(--primary); color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer;">
+                    端末を登録する
+                </button>
+            </div>
+        </div>
+        <div id="passkeyRegMsg" style="text-align: right; font-size: 0.85rem; margin-top: 0.5rem; display: none;"></div>
         
         <div style="margin-top: 3rem; text-align: right;">
             <a href="/change-password" style="font-size: 0.9rem;">🔑 ${t.btn_change_password}</a>
@@ -192,6 +205,58 @@ export const UserDashboard = (props: Props) => {
                   </div>
             `
         })}
+
+        <script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const regBtn = document.getElementById('registerPasskeyBtn');
+                const msgDiv = document.getElementById('passkeyRegMsg');
+                
+                if (regBtn) {
+                    regBtn.addEventListener('click', async () => {
+                        try {
+                            regBtn.disabled = true;
+                            msgDiv.style.display = 'none';
+                            regBtn.innerText = '登録中...';
+                            
+                            const optRes = await fetch('/api/webauthn/register/options');
+                            if (!optRes.ok) throw new Error('登録の準備に失敗しました');
+                            const options = await optRes.json();
+                            
+                            const { startRegistration } = SimpleWebAuthnBrowser;
+                            const attResp = await startRegistration({ optionsJSON: options });
+                            
+                            const verifyRes = await fetch('/api/webauthn/register/verify', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(attResp)
+                            });
+                            
+                            const verification = await verifyRes.json();
+                            if (verification.verified) {
+                                msgDiv.innerText = 'パスキーの登録が完了しました！次回のログインから利用できます。';
+                                msgDiv.style.color = '#15803d';
+                                msgDiv.style.display = 'block';
+                            } else {
+                                throw new Error(verification.error || '登録に失敗しました');
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            let errorMsg = '登録がキャンセルされたか、エラーが発生しました。';
+                            if (err.name === 'NotAllowedError' || err.message.includes('not allowed')) {
+                                errorMsg = '生体認証がキャンセルされました。';
+                            }
+                            msgDiv.innerText = errorMsg;
+                            msgDiv.style.color = '#b91c1c';
+                            msgDiv.style.display = 'block';
+                        } finally {
+                            regBtn.innerText = '端末を登録する';
+                            regBtn.disabled = false;
+                        }
+                    });
+                }
+            });
+        </script>
     `
   })
 }

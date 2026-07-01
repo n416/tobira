@@ -109,3 +109,25 @@ CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_permissions_user ON permissions(user_id);
 CREATE INDEX IF NOT EXISTS idx_group_perms_group ON group_permissions(group_id);
 CREATE INDEX IF NOT EXISTS idx_logs_created ON audit_logs(created_at);
+
+-- WebAuthn
+CREATE TABLE IF NOT EXISTS webauthn_credentials (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    public_key TEXT NOT NULL,
+    counter INTEGER NOT NULL,
+    transports TEXT,
+    created_at INTEGER DEFAULT (strftime('%s', 'now')),
+    last_used_at INTEGER DEFAULT (strftime('%s', 'now'))
+);
+
+CREATE TABLE IF NOT EXISTS webauthn_challenges (
+    id TEXT PRIMARY KEY,
+    user_id TEXT,
+    challenge TEXT NOT NULL,
+    type TEXT NOT NULL, -- 'registration' or 'authentication'
+    expires_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_webauthn_creds_user ON webauthn_credentials(user_id);
+CREATE INDEX IF NOT EXISTS idx_webauthn_challenges_exp ON webauthn_challenges(expires_at);

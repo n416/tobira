@@ -119,6 +119,27 @@ export const Login = (props: Props) => {
     &:active { transform: translateY(0); }
   `
 
+  const btnSecondaryClass = css`
+    width: 100%;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.8);
+    color: #4f46e5;
+    border: 2px solid #e0e7ff;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-family: inherit;
+    &:hover { background: #fff; border-color: #c7d2fe; transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.1); }
+    &:active { transform: translateY(0); }
+  `
+
   const linkClass = css`
     color: var(--text-sub);
     text-decoration: none;
@@ -189,7 +210,7 @@ export const Login = (props: Props) => {
                 ${props.redirectTo ? html`<input type="hidden" name="redirect_to" value="${props.redirectTo}" />` : ''}
 
                 <div class="${inputGroupClass}">
-                    <input type="email" name="email" placeholder="${t.email}" required class="${inputClass}">
+                    <input type="email" name="email" placeholder="${t.email}" autocomplete="username" required class="${inputClass}">
                     <div class="${iconClass} input-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -198,7 +219,7 @@ export const Login = (props: Props) => {
                 </div>
 
                 <div class="${inputGroupClass}">
-                    <input type="password" name="password" placeholder="${t.password}" required class="${inputClass}">
+                    <input type="password" name="password" placeholder="${t.password}" autocomplete="current-password" required class="${inputClass}">
                     <div class="${iconClass} input-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zM12 9a4 4 0 110-8 4 4 0 010 8z" />
@@ -211,12 +232,78 @@ export const Login = (props: Props) => {
                 </button>
             </form>
 
+            <button type="button" class="${btnSecondaryClass}" id="passkeyBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+                パスキーでログイン (生体認証)
+            </button>
+            <div id="passkeyError" style="display:none; color: #b91c1c; font-size: 0.85rem; margin-top: 0.5rem; text-align: center;"></div>
+
             <div style="margin-top: 2rem; text-align: center; font-size: 0.875rem;">
                 <p style="margin-bottom: 0.5rem;"><a href="/forgot-password" class="${linkClass}">${t.forgot_password}</a></p>
             </div>
         </div>
       </div>
+      <script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js"></script>
+      <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const passkeyBtn = document.getElementById('passkeyBtn');
+            const errDiv = document.getElementById('passkeyError');
+            
+            if (passkeyBtn) {
+                passkeyBtn.addEventListener('click', async () => {
+                    try {
+                        passkeyBtn.disabled = true;
+                        errDiv.style.display = 'none';
+                        passkeyBtn.innerText = '認証中...';
+                        
+                        const optRes = await fetch('/api/webauthn/login/options');
+                        if (!optRes.ok) throw new Error('生体認証の準備に失敗しました');
+                        const options = await optRes.json();
+                        
+                        const { startAuthentication } = SimpleWebAuthnBrowser;
+                        const asseResp = await startAuthentication({ optionsJSON: options });
+                        
+                        const verifyRes = await fetch('/api/webauthn/login/verify', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(asseResp)
+                        });
+                        
+                        const verification = await verifyRes.json();
+                        if (verification.verified) {
+                            const redirectTo = document.querySelector('input[name="redirect_to"]')?.value || '/';
+                            if (verification.require2fa) {
+                                let target = '/login/2fa';
+                                if (redirectTo && redirectTo !== '/') {
+                                    target += '?redirect_to=' + encodeURIComponent(redirectTo);
+                                }
+                                window.location.href = target;
+                            } else {
+                                window.location.href = redirectTo;
+                            }
+                        } else {
+                            throw new Error(verification.error || '認証に失敗しました');
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        let errorMsg = '生体認証がキャンセルされたか、エラーが発生しました。';
+                        if (err.name === 'NotAllowedError' || err.message.includes('not allowed')) {
+                            errorMsg = '生体認証がキャンセルされたか、この端末にパスキーが登録されていません。パスワードでログインし、ダッシュボードから端末を登録してください。';
+                        } else if (err.message.includes('invalid domain')) {
+                            errorMsg = 'セキュリティエラー: 許可されていないアクセス元です。';
+                        }
+                        errDiv.innerText = errorMsg;
+                        errDiv.style.display = 'block';
+                        passkeyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg> パスキーでログイン (生体認証)';
+                    } finally {
+                        passkeyBtn.disabled = false;
+                    }
+                });
+            }
+        });
+      </script>
     </body>
     </html>
+
   `
 }

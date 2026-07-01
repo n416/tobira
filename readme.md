@@ -13,6 +13,7 @@ Instead of relying on external IdP services, you can embed the authentication lo
 * **No OIDC, No Complexity**: Free from complex standards. Simple, readable code base.
 * **Full Control**: User data lives in YOUR D1 database. No third-party data lock-in.
 * **AI-Native Friendly**: Clean implementation (Hono + D1) that is easy for AI to read and customize.
+* **Passkey (WebAuthn)**: Passwordless biometric authentication built-in.
 * **2FA Ready**: Built-in Two-Factor Authentication (TOTP).
 
 ---
@@ -56,8 +57,19 @@ Access `http://localhost:8787/login` and log in.
 
 ---
 
-## 🚀 Production Deployment
+## 🚀 Production & Preview Deployment
 
+Tobira supports both a safe Preview environment and a Production environment using Cloudflare Environments.
+
+### Deploy to Preview (Staging)
+1. **Create Preview DB**: `npx wrangler d1 create tobira-db-preview`
+2. **Update Config**: Add the new database ID to `[env.preview]` in `wrangler.toml`.
+3. **Deploy**:
+    ```bash
+    npm run deploy:preview
+    ```
+
+### Deploy to Production
 1.  **Config**: Change `JWT_SECRET` in `wrangler.toml` to your own random string.
 2.  **Create Admin**: Create an admin for the remote environment.
     ```bash
@@ -66,7 +78,7 @@ Access `http://localhost:8787/login` and log in.
     ```
 3.  **Deploy**:
     ```bash
-    npm run deploy
+    npm run deploy:prod
     ```
 
 ---

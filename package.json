@@ -4,10 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy --minify",
+    "deploy:preview": "wrangler deploy --env preview",
+    "deploy:prod": "wrangler deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings"
   },
   "dependencies": {
+    "@simplewebauthn/browser": "^13.3.0",
+    "@simplewebauthn/server": "^13.3.2",
     "bcryptjs": "^2.4.3",
     "hono": "^4.11.1",
     "otplib": "^12.0.1",

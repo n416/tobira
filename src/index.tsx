@@ -23,6 +23,13 @@ import { GroupsPage } from './views/admin/GroupsPage'
 import { UsersPage } from './views/admin/UsersPage'
 import { LogsPage } from './views/admin/LogsPage'
 
+import {
+    generateRegistrationOptions,
+    verifyRegistrationResponse,
+    generateAuthenticationOptions,
+    verifyAuthenticationResponse,
+} from '@simplewebauthn/server'
+
 import { dict } from './i18n'
 
 const app = new Hono<{ Bindings: Env }>()
@@ -877,6 +884,180 @@ app.post('/login/2fa', async (c) => {
     } else {
         return c.html(<Login2FA t={t} redirectTo={redirectTo} error={t.err_invalid_code} />)
     }
+})
+
+// ==========================================
+// WebAuthn (Passkey) Routes
+// ==========================================
+
+function getRpId(c: any) {
+    const url = new URL(c.req.url)
+    if (url.hostname === '127.0.0.1') return 'localhost'
+    return url.hostname
+}
+
+function getExpectedOrigin(c: any) {
+    const url = new URL(c.req.url)
+    return url.origin
+}
+
+// 1. パスキー登録オプションの生成
+app.get('/api/webauthn/register/options', async (c) => {
+    const user = await getUser(c)
+    if (!user) return c.json({ error: 'Unauthorized' }, 401)
+    
+    // 既存のクレデンシャルを取得（重複登録を防ぐため）
+    const existingCreds = await c.env.DB.prepare('SELECT id FROM webauthn_credentials WHERE user_id = ?').bind(user.id).all<{ id: string }>()
+    
+    const rpId = getRpId(c)
+    const options = await generateRegistrationOptions({
+        rpName: 'Tobira IDP',
+        rpID: rpId,
+        userID: new TextEncoder().encode(user.id) as any,
+        userName: user.email,
+        excludeCredentials: existingCreds.results?.map(cred => ({
+            id: cred.id,
+            transports: ['internal', 'hybrid'],
+        })) || [],
+        authenticatorSelection: {
+            residentKey: 'required',
+            userVerification: 'preferred',
+        }
+    })
+    
+    const challengeId = crypto.randomUUID()
+    const expires = Math.floor(Date.now() / 1000) + 300 // 5 minutes
+    await c.env.DB.prepare('INSERT INTO webauthn_challenges (id, user_id, challenge, type, expires_at) VALUES (?, ?, ?, ?, ?)')
+        .bind(challengeId, user.id, options.challenge, 'registration', expires).run()
+        
+    setCookie(c, 'webauthn_challenge_id', challengeId, { path: '/', secure: true, httpOnly: true, sameSite: 'Lax', maxAge: 300 })
+    return c.json(options)
+})
+
+// 2. パスキー登録の検証
+app.post('/api/webauthn/register/verify', async (c) => {
+    const user = await getUser(c)
+    if (!user) return c.json({ error: 'Unauthorized' }, 401)
+    
+    const challengeId = getCookie(c, 'webauthn_challenge_id')
+    if (!challengeId) return c.json({ error: 'No challenge found' }, 400)
+    
+    const challengeRow = await c.env.DB.prepare('SELECT challenge FROM webauthn_challenges WHERE id = ? AND user_id = ? AND type = ? AND expires_at > ?')
+        .bind(challengeId, user.id, 'registration', Math.floor(Date.now() / 1000)).first<{ challenge: string }>()
+        
+    if (!challengeRow) return c.json({ error: 'Invalid or expired challenge' }, 400)
+    
+    const body = await c.req.json()
+    
+    try {
+        const verification = await verifyRegistrationResponse({
+            response: body,
+            expectedChallenge: challengeRow.challenge,
+            expectedOrigin: getExpectedOrigin(c),
+            expectedRPID: getRpId(c),
+        })
+        
+        if (verification.verified && verification.registrationInfo) {
+            const { credential, credentialDeviceType, credentialBackedUp } = verification.registrationInfo
+            const credId = credential.id
+            const pubKeyBase64 = btoa(String.fromCharCode(...new Uint8Array(credential.publicKey as any)))
+
+            await c.env.DB.prepare('INSERT INTO webauthn_credentials (id, user_id, public_key, counter, transports) VALUES (?, ?, ?, ?, ?)')
+                .bind(credId, user.id, pubKeyBase64, credential.counter, credential.transports?.join(',') || '').run()
+                
+            await c.env.DB.prepare('DELETE FROM webauthn_challenges WHERE id = ?').bind(challengeId).run()
+            deleteCookie(c, 'webauthn_challenge_id')
+            
+            const details = JSON.stringify({ key: 'log_passkey_registered', params: { email: user.email } });
+            await c.env.DB.prepare('INSERT INTO audit_logs (event_type, details) VALUES (?, ?)').bind('PASSKEY_REGISTERED', details).run()
+            
+            return c.json({ verified: true })
+        }
+    } catch (e: any) {
+        console.error('Registration verification failed:', e)
+        return c.json({ error: e.message }, 400)
+    }
+    return c.json({ verified: false }, 400)
+})
+
+// 3. パスキー認証オプションの生成
+app.get('/api/webauthn/login/options', async (c) => {
+    const rpId = getRpId(c)
+    const options = await generateAuthenticationOptions({
+        rpID: rpId,
+        userVerification: 'preferred',
+    })
+    
+    const challengeId = crypto.randomUUID()
+    const expires = Math.floor(Date.now() / 1000) + 300 // 5 minutes
+    await c.env.DB.prepare('INSERT INTO webauthn_challenges (id, challenge, type, expires_at) VALUES (?, ?, ?, ?)')
+        .bind(challengeId, options.challenge, 'authentication', expires).run()
+        
+    setCookie(c, 'webauthn_auth_challenge_id', challengeId, { path: '/', secure: true, httpOnly: true, sameSite: 'Lax', maxAge: 300 })
+    return c.json(options)
+})
+
+// 4. パスキー認証の検証とログイン
+app.post('/api/webauthn/login/verify', async (c) => {
+    const challengeId = getCookie(c, 'webauthn_auth_challenge_id')
+    if (!challengeId) return c.json({ error: 'No challenge found' }, 400)
+    
+    const challengeRow = await c.env.DB.prepare('SELECT challenge FROM webauthn_challenges WHERE id = ? AND type = ? AND expires_at > ?')
+        .bind(challengeId, 'authentication', Math.floor(Date.now() / 1000)).first<{ challenge: string }>()
+        
+    if (!challengeRow) return c.json({ error: 'Invalid or expired challenge' }, 400)
+    
+    const body = await c.req.json()
+    const credIdBase64 = body.id
+    
+    // DBからクレデンシャルを検索
+    const credential = await c.env.DB.prepare('SELECT * FROM webauthn_credentials WHERE id = ?').bind(credIdBase64).first<{ user_id: string, public_key: string, counter: number, transports: string }>()
+    if (!credential) return c.json({ error: 'Credential not found' }, 400)
+    
+    const user = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(credential.user_id).first() as User | null
+    if (!user) return c.json({ error: 'User not found' }, 400)
+    
+    try {
+        const pubKeyUint8 = new Uint8Array(atob(credential.public_key).split('').map(c => c.charCodeAt(0))) as any
+        
+        const verification = await verifyAuthenticationResponse({
+            response: body,
+            expectedChallenge: challengeRow.challenge,
+            expectedOrigin: getExpectedOrigin(c),
+            expectedRPID: getRpId(c),
+            credential: {
+                id: credIdBase64,
+                publicKey: pubKeyUint8,
+                counter: credential.counter,
+                transports: (credential.transports ? credential.transports.split(',') : undefined) as any,
+            }
+        })
+        
+        if (verification.verified && verification.authenticationInfo) {
+            const { newCounter } = verification.authenticationInfo
+            
+            // カウンターの更新
+            await c.env.DB.prepare('UPDATE webauthn_credentials SET counter = ?, last_used_at = ? WHERE id = ?')
+                .bind(newCounter, Math.floor(Date.now() / 1000), credIdBase64).run()
+            await c.env.DB.prepare('DELETE FROM webauthn_challenges WHERE id = ?').bind(challengeId).run()
+            deleteCookie(c, 'webauthn_auth_challenge_id')
+            
+            // セッションの発行（通常のパスワードログイン後と同じ処理）
+            const sessionId = generateToken()
+            const expires = Math.floor(Date.now() / 1000) + 86400
+            await c.env.DB.prepare('INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)').bind(sessionId, user.id, expires).run()
+            setCookie(c, '__Host-idp_session', sessionId, getCookieOptions(expires))
+            
+            const details = JSON.stringify({ key: 'log_login_app', params: { email: user.email, method: 'Passkey' } });
+            await c.env.DB.prepare('INSERT INTO audit_logs (event_type, details) VALUES (?, ?)').bind('LOGIN', details).run()
+            
+            return c.json({ verified: true, redirect_url: '/' })
+        }
+    } catch (e: any) {
+        console.error('Authentication verification failed:', e)
+        return c.json({ error: e.message }, 400)
+    }
+    return c.json({ verified: false }, 400)
 })
 
 export default app

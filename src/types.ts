@@ -64,3 +64,21 @@ export interface SystemConfig {
   appName: LocalizedText
   appSubtitle: LocalizedText
 }
+
+export interface WebAuthnCredential {
+  id: string
+  user_id: string
+  public_key: string
+  counter: number
+  transports: string | null
+  created_at: number
+  last_used_at: number
+}
+
+export interface WebAuthnChallenge {
+  id: string
+  user_id: string | null
+  challenge: string
+  type: string
+  expires_at: number
+}
