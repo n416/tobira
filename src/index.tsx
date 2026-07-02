@@ -955,6 +955,7 @@ app.post('/api/webauthn/register/verify', async (c) => {
             expectedChallenge: challengeRow.challenge,
             expectedOrigin: getExpectedOrigin(c),
             expectedRPID: getRpId(c),
+            requireUserVerification: false,
         })
         
         if (verification.verified && verification.registrationInfo) {
@@ -1025,6 +1026,7 @@ app.post('/api/webauthn/login/verify', async (c) => {
             expectedChallenge: challengeRow.challenge,
             expectedOrigin: getExpectedOrigin(c),
             expectedRPID: getRpId(c),
+            requireUserVerification: false,
             credential: {
                 id: credIdBase64,
                 publicKey: pubKeyUint8,
