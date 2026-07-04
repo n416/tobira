@@ -8,6 +8,7 @@ import { verifyPassword, hashPassword, generateToken, getCookieOptions } from '.
 import { generateSecret, generateQRCode, verifyToken } from './utils/totp'
 import { sendEmail } from './utils/mail'
 import { fetchAppIcon } from './utils/icon'
+import { findAppByRedirect } from './utils/redirect'
 import { Login } from './views/Login'
 import { UserDashboard } from './views/UserDashboard'
 import { Invite } from './views/Invite'
@@ -219,7 +220,7 @@ app.post('/login', async (c) => {
     const admin = await c.env.DB.prepare('SELECT * FROM admins WHERE email = ?').bind(email).first()
     if (redirectTo) {
         const { results } = await c.env.DB.prepare('SELECT * FROM apps WHERE status = ?').bind('active').all() as any;
-        const app = (results as any[]).find((a: any) => redirectTo.startsWith(a.base_url));
+        const app = findAppByRedirect(results as App[], redirectTo);
         if (app) targetAppName = app.name;
     } else if (admin) {
         targetAppName = 'Tobira Admin';
@@ -235,7 +236,7 @@ app.post('/login', async (c) => {
 
 async function issueCodeAndRedirect(c: any, userId: string, redirectTo: string) {
     const { results } = await c.env.DB.prepare('SELECT * FROM apps WHERE status = ?').bind('active').all() as any
-    const app = (results as App[]).find(a => redirectTo.startsWith(a.base_url))
+    const app = findAppByRedirect(results as App[], redirectTo)
 
     if (!app) {
         console.error(`[Auth] No app matches redirect_to: ${redirectTo}`);
@@ -870,7 +871,7 @@ app.post('/login/2fa', async (c) => {
         const admin = await c.env.DB.prepare('SELECT * FROM admins WHERE email = ?').bind(user.email).first()
         if (redirectTo) {
             const { results } = await c.env.DB.prepare('SELECT * FROM apps WHERE status = ?').bind('active').all() as any;
-            const app = (results as any[]).find((a: any) => redirectTo.startsWith(a.base_url));
+            const app = findAppByRedirect(results as App[], redirectTo);
             if (app) targetAppName = app.name;
         } else if (admin) {
             targetAppName = 'Tobira Admin';

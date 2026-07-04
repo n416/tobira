@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "wrangler dev",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "deploy:preview": "wrangler deploy --env preview",
     "deploy:prod": "wrangler deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
@@ -18,11 +20,13 @@
     "qrcode": "^1.5.3"
   },
   "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.18.0",
     "@cloudflare/workers-types": "^4.20240208.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.0.0",
     "@types/qrcode": "^1.5.5",
     "typescript": "^5.0.0",
+    "vitest": "^4.1.9",
     "wrangler": "^4.106.0"
   }
 }
