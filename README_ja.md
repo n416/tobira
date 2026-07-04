@@ -58,7 +58,17 @@ npm run dev
 
 ## 🚀 本番デプロイ
 
-1.  **環境変数の設定**: `wrangler.toml` の `JWT_SECRET` を独自の乱数に変更してください。
+1.  **シークレットの登録**: `JWT_SECRET` を暗号化シークレットとして登録します（`wrangler.toml` に平文で書かないでください）。
+    ```bash
+    npx wrangler secret put JWT_SECRET
+    # 長いランダム文字列を貼り付けてください。生成例:
+    # node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+    ```
+    Preview環境がある場合は `npx wrangler secret put JWT_SECRET --env preview` も実行してください。
+    ローカル開発用の値は `.dev.vars`（gitignore済み）に記載します:
+    ```
+    JWT_SECRET=ローカル開発用の値
+    ```
 2.  **管理者作成**: リモート環境に対して管理者を作成します。
     ```bash
     npx tsx scripts/manage-admin.ts create admin@example.com mypassword
