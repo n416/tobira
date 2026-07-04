@@ -41,6 +41,15 @@ const getLang = (c: any) => {
     return accept.includes('ja') ? dict.ja : dict.en
 }
 
+// JWT_SECRET は wrangler secret put で登録必須。未設定のまま弱い既定値で
+// トークンを署名しないよう、フォールバックせずエラーにする(fail-closed)
+const getJwtSecret = (c: { env: Env }): string => {
+    if (!c.env.JWT_SECRET) {
+        throw new Error('JWT_SECRET is not configured. Set it via `wrangler secret put JWT_SECRET` (or .dev.vars for local dev).')
+    }
+    return c.env.JWT_SECRET
+}
+
 async function getSystemConfig(db: D1Database): Promise<SystemConfig> {
     const config: SystemConfig = {
         appName: { ja: 'Tobira', en: 'Tobira' },
@@ -201,7 +210,7 @@ app.post('/login', async (c) => {
 
     // 2FA Check
     if (user.two_factor_secret) {
-        const secret = c.env.JWT_SECRET || 'dev_secret'
+        const secret = getJwtSecret(c)
         const token = await sign({ sub: user.id, role: 'pre_2fa', exp: Math.floor(Date.now() / 1000) + 300 }, secret)
         setCookie(c, 'pre_2fa_token', token, { path: '/', secure: true, httpOnly: true, maxAge: 300, sameSite: 'Lax' })
 
@@ -843,7 +852,8 @@ app.get('/login/2fa', async (c) => {
     const t = getLang(c)
     const token = getCookie(c, 'pre_2fa_token')
     if (!token) return c.redirect('/login')
-    try { await verify(token, c.env.JWT_SECRET || 'dev_secret', "HS256") } catch (e) { return c.redirect('/login') }
+    const secret = getJwtSecret(c)
+    try { await verify(token, secret, "HS256") } catch (e) { return c.redirect('/login') }
     const redirectTo = c.req.query('redirect_to')
     return c.html(<Login2FA t={t} redirectTo={redirectTo} />)
 })
@@ -855,7 +865,8 @@ app.post('/login/2fa', async (c) => {
     const preToken = getCookie(c, 'pre_2fa_token')
     if (!preToken) return c.redirect('/login')
     let payload;
-    try { payload = await verify(preToken, c.env.JWT_SECRET || 'dev_secret', "HS256") } catch (e) { return c.redirect('/login') }
+    const secret = getJwtSecret(c)
+    try { payload = await verify(preToken, secret, "HS256") } catch (e) { return c.redirect('/login') }
     const userId = payload.sub as string
     const user = await c.env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first() as User | null
     if (!user || !user.two_factor_secret) return c.redirect('/login')
