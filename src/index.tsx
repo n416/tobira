@@ -1073,5 +1073,67 @@ app.post('/api/webauthn/login/verify', async (c) => {
     }
     return c.json({ verified: false }, 400)
 })
+// --- NaviCon Web API Proxy / Fallback ---
+app.get('/navicon-api', async (c) => {
+    const query = c.req.query();
+    const mid = c.env.NAVICON_MID;
+    let finalNaviconUrl = '';
+
+    if (mid) {
+        // APIキーがある場合: NaviCon Web APIをPOSTで叩き、正規のURLを発行する
+        // TODO: 公式仕様に基づき、APIへのPOSTリクエストを実装する
+    }
+
+    if (!finalNaviconUrl) {
+        // APIキーがない場合、または未実装時は、パラメータだけ直した形でテスト
+        // （ver=2.0 が code/mid の検証をしない可能性に賭けるテスト用）
+        let urlParams = 'ver=2.0';
+        for (let i = 1; i <= 5; i++) {
+            if (query[`lat${i}`] && query[`lng${i}`]) {
+                urlParams += `&title${i}=${encodeURIComponent(query[`title${i}`] || '')}`;
+                urlParams += `&lat${i}=${query[`lat${i}`]}&lng${i}=${query[`lng${i}`]}`;
+            }
+        }
+        finalNaviconUrl = `navicon://navicon.com/setPOI?${urlParams}`;
+    }
+
+    // iOSのSafariが自動リダイレクトをブロックする対策として、
+    // 自動遷移に加えてボタンタップによる手動起動も用意する
+    return c.html(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NaviCon Redirect</title>
+  <style>
+    .btn {
+      display: inline-block;
+      padding: 15px 30px;
+      font-size: 1.2rem;
+      color: #fff;
+      background-color: #007bff;
+      border: none;
+      border-radius: 5px;
+      text-decoration: none;
+      margin-top: 20px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body style="text-align: center; padding: 2rem; font-family: sans-serif;">
+  <h2>NaviConを起動しています...</h2>
+  <p style="color: #666; font-size: 0.9em;">自動的に起動しない場合は、下のボタンを押してください。</p>
+  
+  <a href="${finalNaviconUrl}" class="btn">ナビを開く</a>
+
+  <script>
+    // 少し遅延を入れて自動起動を試みる
+    setTimeout(function() {
+      window.location.href = "${finalNaviconUrl}";
+    }, 500);
+  </script>
+</body>
+</html>`);
+})
 
 export default app
