@@ -1104,11 +1104,11 @@ app.get('/navicon-api', async (c) => {
             points.forEach((p, index) => {
                 const i = index + 1;
                 params.append(`name${i}`, p.name);
-                params.append(`lat${i}`, p.lat);
-                params.append(`lon${i}`, p.lng);
+                // 仕様: coordinates{i} は「緯度,経度」のカンマ区切り
+                params.append(`coordinates${i}`, `${p.lat},${p.lng}`);
             });
 
-            const res = await fetch('https://dev.navicon.com/webapi/rest/navicon/createNaviConURL', {
+            const res = await fetch('https://dev.navicon.com/webapi/cmd/navicon/createNaviConURL', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
@@ -1118,10 +1118,11 @@ app.get('/navicon-api', async (c) => {
 
             if (res.ok) {
                 const data = await res.json() as any;
-                if (data.rst === 0 && data.naviconurl) {
-                    finalNaviconUrl = data.naviconurl;
+                if (data.ret === 0 && data.urlschema) {
+                    finalNaviconUrl = data.urlschema;
                 } else {
-                    console.error(`[NaviCon API Error] code: ${data.code}, rst: ${data.rst} (API Key and RegID are masked)`);
+                    // message にはエラーとなったパラメータ名が入る（認証情報は含まれない）
+                    console.error(`[NaviCon API Error] ret: ${data.ret}, code: ${data.code}, message: ${data.message}`);
                 }
             } else {
                 console.error(`[NaviCon API HTTP Error] status: ${res.status} ${res.statusText}`);
