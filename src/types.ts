@@ -2,7 +2,8 @@ export interface Env {
   DB: D1Database
   RESEND_API_KEY?: string
   JWT_SECRET: string
-  NAVICON_MID?: string
+  NAVICON_API_KEY?: string
+  NAVICON_REG_ID?: string
 }
 
 export interface User {

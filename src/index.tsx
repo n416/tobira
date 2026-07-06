@@ -1076,25 +1076,80 @@ app.post('/api/webauthn/login/verify', async (c) => {
 // --- NaviCon Web API Proxy / Fallback ---
 app.get('/navicon-api', async (c) => {
     const query = c.req.query();
-    const mid = c.env.NAVICON_MID;
+    const apiKey = c.env.NAVICON_API_KEY;
+    const regId = c.env.NAVICON_REG_ID;
+    
     let finalNaviconUrl = '';
-
-    if (mid) {
-        // APIキーがある場合: NaviCon Web APIをPOSTで叩き、正規のURLを発行する
-        // TODO: 公式仕様に基づき、APIへのPOSTリクエストを実装する
+    
+    // 正常な地点情報を配列にまとめる
+    const points: { name: string, lat: string, lng: string }[] = [];
+    for (let i = 1; i <= 5; i++) {
+        const lat = query[`lat${i}`];
+        const lng = query[`lng${i}`];
+        const title = query[`title${i}`] || `地点${i}`;
+        if (lat && lng) {
+            points.push({ name: title, lat, lng });
+        }
     }
 
-    if (!finalNaviconUrl) {
-        // APIキーがない場合、または未実装時は、パラメータだけ直した形でテスト
-        // （ver=2.0 が code/mid の検証をしない可能性に賭けるテスト用）
-        let urlParams = 'ver=2.0';
-        for (let i = 1; i <= 5; i++) {
-            if (query[`lat${i}`] && query[`lng${i}`]) {
-                urlParams += `&title${i}=${encodeURIComponent(query[`title${i}`] || '')}`;
-                urlParams += `&lat${i}=${query[`lat${i}`]}&lng${i}=${query[`lng${i}`]}`;
+    if (apiKey && regId && points.length > 0) {
+        try {
+            const params = new URLSearchParams();
+            params.append('output', 'json');
+            params.append('apikey', apiKey);
+            params.append('regid', regId);
+            params.append('ver', '2.0');
+            params.append('secure', '0');
+            
+            points.forEach((p, index) => {
+                const i = index + 1;
+                params.append(`name${i}`, p.name);
+                params.append(`lat${i}`, p.lat);
+                params.append(`lon${i}`, p.lng);
+            });
+
+            const res = await fetch('https://dev.navicon.com/webapi/rest/navicon/createNaviConURL', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: params.toString()
+            });
+
+            if (res.ok) {
+                const data = await res.json() as any;
+                if (data.rst === 0 && data.naviconurl) {
+                    finalNaviconUrl = data.naviconurl;
+                } else {
+                    console.error(`[NaviCon API Error] code: ${data.code}, rst: ${data.rst} (API Key and RegID are masked)`);
+                }
+            } else {
+                console.error(`[NaviCon API HTTP Error] status: ${res.status} ${res.statusText}`);
             }
+        } catch (e) {
+            console.error('[NaviCon API Fetch Error]', e);
         }
-        finalNaviconUrl = `navicon://navicon.com/setPOI?${urlParams}`;
+    } else if (!apiKey || !regId) {
+        console.warn('[NaviCon API] NAVICON_API_KEY or NAVICON_REG_ID is missing. Falling back to Google Maps.');
+    }
+
+    if (!finalNaviconUrl && points.length > 0) {
+        // フォールバック: Google Maps
+        // destination: 最後の地点
+        // waypoints: 最後の地点以外
+        const destination = points[points.length - 1];
+        const waypoints = points.slice(0, points.length - 1);
+        
+        const gmapsParams = new URLSearchParams();
+        gmapsParams.append('api', '1');
+        gmapsParams.append('destination', `${destination.lat},${destination.lng}`);
+        if (waypoints.length > 0) {
+            const waypointsStr = waypoints.map(p => `${p.lat},${p.lng}`).join('|');
+            gmapsParams.append('waypoints', waypointsStr);
+        }
+        gmapsParams.append('dir_action', 'navigate');
+        
+        finalNaviconUrl = `https://www.google.com/maps/dir/?${gmapsParams.toString()}`;
     }
 
     // iOSのSafariが自動リダイレクトをブロックする対策として、
